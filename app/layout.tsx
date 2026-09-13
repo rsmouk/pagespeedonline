@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { RtlProvider } from "@/components/providers/RtlProvider";
 import "./globals.css";
@@ -24,7 +25,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
-          <RtlProvider>{children}</RtlProvider>
+          <RtlProvider>
+            {children}
+            <CookieConsentBanner />
+          </RtlProvider>
         </ThemeProvider>
       </body>
     </html>

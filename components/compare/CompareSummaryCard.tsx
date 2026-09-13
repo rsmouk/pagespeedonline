@@ -176,7 +176,7 @@ export function CompareSummaryCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       <div className="grid border-b border-slate-200 lg:grid-cols-2 dark:border-slate-800">
         <div className="border-b border-slate-100 bg-teal-50/50 px-5 py-4 lg:border-b-0 lg:border-e dark:border-slate-800 dark:bg-teal-950/20">
           <div className="flex items-center gap-2">

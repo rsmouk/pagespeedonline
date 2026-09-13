@@ -143,7 +143,7 @@ export function CompareScreenshotsSection({
   if (!hasAnyScreenshot) return null;
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Page Screenshots — Side by Side
