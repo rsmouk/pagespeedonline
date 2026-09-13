@@ -35,15 +35,41 @@ export default function OpenGraphImage() {
               width: 72,
               height: 72,
               borderRadius: 16,
-              background: "#0d9488",
+              background: "linear-gradient(135deg, #0f766e 0%, #2dd4bf 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 36,
-              fontWeight: 700,
             }}
           >
-            LC
+            <svg
+              width="44"
+              height="44"
+              viewBox="0 0 32 32"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M7 21.5a9 9 0 0 1 18 0"
+                stroke="#ffffff"
+                strokeWidth="2.25"
+                strokeLinecap="round"
+                opacity="0.35"
+              />
+              <path
+                d="M9.5 21a6.5 6.5 0 0 1 13 0"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+              <circle cx="16" cy="21" r="2" fill="#ffffff" />
+              <path
+                d="M16 21V13.5"
+                stroke="#ffffff"
+                strokeWidth="2.25"
+                strokeLinecap="round"
+              />
+              <circle cx="16" cy="13.5" r="1.25" fill="#ffffff" />
+            </svg>
           </div>
           <span style={{ fontSize: 48, fontWeight: 700 }}>
             {siteConfig.name}
