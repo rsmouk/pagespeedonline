@@ -9,8 +9,12 @@ import { Footer } from "@/components/Footer";
 import { HeaderSitePanel } from "@/components/headers/HeaderSitePanel";
 import { CopyJsonButton } from "@/components/ui/CopyJsonButton";
 import { fetchUrlHeaders } from "@/lib/headers-client";
+import {
+  buildHeaderCompareExport,
+  headerCompareToJson,
+} from "@/lib/header-export";
 import { normalizeUrl } from "@/lib/formatters";
-import type { HeaderCompareExport, HeaderInspectResult } from "@/lib/header-types";
+import type { HeaderInspectResult } from "@/lib/header-types";
 
 export function HeaderComparePage() {
   const searchParams = useSearchParams();
@@ -47,15 +51,19 @@ export function HeaderComparePage() {
     }
   }, [searchParams, runCompare]);
 
-  const canCopy = Boolean(resultA && resultB);
-  const getPayload = useCallback(() => {
-    const payload: HeaderCompareExport = {
-      exportedAt: new Date().toISOString(),
-      siteA: { url: urlA, result: resultA! },
-      siteB: { url: urlB, result: resultB! },
-    };
-    return JSON.stringify(payload, null, 2);
-  }, [urlA, urlB, resultA, resultB]);
+  const canCopy = Boolean((resultA || resultB) && !loading);
+  const getPayload = useCallback(
+    () =>
+      headerCompareToJson(
+        buildHeaderCompareExport({
+          urlA,
+          urlB,
+          resultA,
+          resultB,
+        })
+      ),
+    [urlA, urlB, resultA, resultB]
+  );
 
   const hopA = resultA?.hops[resultA.hops.length - 1];
   const hopB = resultB?.hops[resultB.hops.length - 1];
@@ -67,7 +75,10 @@ export function HeaderComparePage() {
         actions={
           <>
             {canCopy && (
-              <CopyJsonButton getPayload={getPayload} label="Copy JSON" />
+              <CopyJsonButton
+                getPayload={getPayload}
+                label="Copy Header JSON"
+              />
             )}
             <Link
               href="/"
@@ -118,12 +129,20 @@ export function HeaderComparePage() {
                 {urlB}
               </p>
             </div>
-            {loading && (
-              <span className="inline-flex items-center gap-2 text-xs text-slate-500">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Inspecting headers...
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {loading && (
+                <span className="inline-flex items-center gap-2 text-xs text-slate-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Inspecting headers...
+                </span>
+              )}
+              {canCopy && (
+                <CopyJsonButton
+                  getPayload={getPayload}
+                  label="Copy Header JSON"
+                />
+              )}
+            </div>
           </div>
         )}
 
