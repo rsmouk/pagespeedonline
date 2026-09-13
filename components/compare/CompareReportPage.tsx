@@ -10,7 +10,9 @@ import { ScanProgress } from "@/components/ScanProgress";
 import { AlignedCompareResults } from "@/components/compare/AlignedCompareResults";
 import { SingleSiteResults } from "@/components/compare/SingleSiteResults";
 import { ScanErrorPanel } from "@/components/compare/ScanErrorPanel";
+import { ServiceOfferBanner } from "@/components/compare/ServiceOfferBanner";
 import { CopyUrlButton } from "@/components/ui/CopyUrlButton";
+import { NavIconLink } from "@/components/ui/NavIconButton";
 import { DownloadJsonButton } from "@/components/ui/DownloadJsonButton";
 import {
   buildFullComparisonExport,
@@ -40,6 +42,7 @@ import {
 import type { ImportedReport } from "@/lib/report-import";
 import { importedReportToScans, mergeImportedScans } from "@/lib/import-to-scans";
 import { phaseScanUrl } from "@/lib/scan-keys";
+import { loadReportCache, saveReportCache } from "@/lib/report-cache";
 import { jsonFilename } from "@/lib/download-json";
 import type { PageSpeedResult, ScanState, Strategy } from "@/lib/types";
 import { scanKey } from "@/lib/types";
@@ -277,21 +280,36 @@ export function CompareReportPage() {
     setCaptureDone(false);
     setImportReady(false);
     setExportError(null);
-    setScans([]);
     inFlight.current.clear();
 
     const source = searchParams.get("source");
     if (source === "import") {
+      setScans([]);
       loadFromImport();
       return;
     }
 
     const mode = (searchParams.get("mode") as CompareMode) ?? "two-sites";
+    const action = searchParams.get("action");
+    const cached = loadReportCache(queryKey);
+
+    if (cached && !(mode === "before-after" && action === "capture")) {
+      setCompareMode(cached.compareMode);
+      setUrlA(cached.urlA);
+      setUrlB(cached.urlB);
+      setBaseUrl(cached.baseUrl);
+      setLabelA(cached.labelA);
+      setLabelB(cached.labelB);
+      setScans(cached.scans);
+      return;
+    }
+
+    setScans([]);
+
     setCompareMode(mode);
 
     if (mode === "before-after") {
       const url = normalizeUrl(searchParams.get("url") ?? "");
-      const action = searchParams.get("action");
       if (!url) return;
 
       setBaseUrl(url);
@@ -373,6 +391,34 @@ export function CompareReportPage() {
   const handleStrategyChange = useCallback((next: Strategy) => {
     setStrategy(next);
   }, []);
+
+  useEffect(() => {
+    const queryKey = searchParams.toString();
+    if (!queryKey || importReady || captureDone || !urlA) return;
+    if (!scans.some((s) => s.status === "done" && s.data)) return;
+
+    saveReportCache({
+      queryKey,
+      compareMode,
+      urlA,
+      urlB,
+      baseUrl,
+      labelA,
+      labelB,
+      scans,
+    });
+  }, [
+    searchParams,
+    scans,
+    compareMode,
+    urlA,
+    urlB,
+    baseUrl,
+    labelA,
+    labelB,
+    importReady,
+    captureDone,
+  ]);
 
   const handleExportPdf = async () => {
     setExporting(true);
@@ -485,19 +531,19 @@ export function CompareReportPage() {
         actions={
           <>
             <div className="hidden sm:contents">{renderReportActions()}</div>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
+            <NavIconLink href="/" label="Home">
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Home</span>
-            </Link>
+            </NavIconLink>
           </>
         }
         mobileBar={
           showReportActions ? renderReportActions(true) : undefined
         }
       />
+
+      {!missingData && !captureDone && (
+        <ServiceOfferBanner siteUrl={displayUrlA || urlA} />
+      )}
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 sm:px-6">
         {captureDone && (

@@ -26,18 +26,6 @@ function extractSectionPayload(
   const lh = data.lighthouseResult;
 
   switch (sectionId) {
-    case "overview":
-      return {
-        captchaResult: data.captchaResult,
-        kind: data.kind,
-        id: data.id,
-        analysisUTCTimestamp: data.analysisUTCTimestamp,
-        requestedUrl: lh.requestedUrl,
-        finalUrl: lh.finalUrl,
-        mainDocumentUrl: lh.mainDocumentUrl,
-        finalDisplayedUrl: lh.finalDisplayedUrl,
-        categories: lh.categories,
-      };
     case "crux":
       return data.loadingExperience ?? null;
     case "origin-crux":

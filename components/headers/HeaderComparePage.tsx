@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { NavIconLink } from "@/components/ui/NavIconButton";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { HeaderHoverProvider } from "@/components/headers/HeaderHoverContext";
@@ -85,13 +86,9 @@ export function HeaderComparePage() {
                 />
               </div>
             )}
-            <Link
-              href="/headers"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
+            <NavIconLink href="/headers" label="Header Tool">
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Header Tool</span>
-            </Link>
+            </NavIconLink>
           </>
         }
         mobileBar={

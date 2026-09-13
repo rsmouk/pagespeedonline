@@ -7,7 +7,7 @@ import { SectionContent } from "@/components/report/SectionContent";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { ScoreRing } from "@/components/ui/ScoreRing";
 import { displayHost } from "@/lib/extract-compare-summary";
-import { formatCategoryLabel } from "@/lib/formatters";
+import { formatCategoryLabel, formatDate } from "@/lib/formatters";
 import { REPORT_SECTIONS } from "@/lib/report-sections";
 import type { ReportSectionId } from "@/lib/report-sections";
 import { getSectionBackground } from "@/lib/section-styles";
@@ -30,9 +30,7 @@ export function SingleSiteResults({
   onStrategyChange,
   onRetry,
 }: SingleSiteResultsProps) {
-  const [openSection, setOpenSection] = useState<ReportSectionId | null>(
-    "overview"
-  );
+  const [openSection, setOpenSection] = useState<ReportSectionId | null>(null);
 
   const strategyLabel =
     strategy.charAt(0).toUpperCase() + strategy.slice(1);
@@ -98,7 +96,9 @@ export function SingleSiteResults({
               <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
                 {host}
               </p>
-              <p className="text-xs text-slate-500">{strategyLabel}</p>
+              <p className="text-xs text-slate-500">
+                {strategyLabel} · Analyzed {formatDate(reportData.analysisUTCTimestamp)}
+              </p>
             </div>
           </div>
         </div>

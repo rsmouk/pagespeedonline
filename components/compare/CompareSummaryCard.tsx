@@ -140,6 +140,7 @@ export interface CompareSummaryCardProps {
   siteLabelB: string;
   subtitleA: string;
   subtitleB: string;
+  analysisDate?: string;
   winnerLabelA: string;
   winnerLabelB: string;
   perfScoreA: number | null;
@@ -153,6 +154,7 @@ export function CompareSummaryCard({
   siteLabelB,
   subtitleA,
   subtitleB,
+  analysisDate,
   winnerLabelA,
   winnerLabelB,
   perfScoreA,
@@ -205,6 +207,12 @@ export function CompareSummaryCard({
           </div>
         </div>
       </div>
+
+      {analysisDate && (
+        <div className="border-b border-slate-200 px-5 py-2 text-center text-xs text-slate-500 dark:border-slate-800">
+          Analyzed {analysisDate}
+        </div>
+      )}
 
       <div className="grid gap-0 lg:grid-cols-2">
         <div className="border-b border-slate-100 p-6 lg:border-b-0 lg:border-e dark:border-slate-800">

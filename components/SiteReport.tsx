@@ -1,7 +1,6 @@
 "use client";
 
 import { Accordion } from "@/components/ui/Accordion";
-import { OverviewSection } from "@/components/sections/OverviewSection";
 import { CruxSection } from "@/components/sections/CruxSection";
 import { LighthouseMetaSection } from "@/components/sections/LighthouseMetaSection";
 import { CategoriesSection } from "@/components/sections/CategoriesSection";
@@ -21,7 +20,6 @@ interface SiteReportProps {
 }
 
 const SECTIONS = [
-  { id: "overview", title: "Overview & Scores", subtitle: "Top-level metadata and category scores" },
   { id: "crux", title: "Field Data (CrUX)", subtitle: "Chrome User Experience Report — page URL" },
   { id: "origin-crux", title: "Origin Field Data", subtitle: "CrUX data for the origin" },
   { id: "meta", title: "Lighthouse Metadata", subtitle: "URLs, version, environment, config" },
@@ -47,8 +45,6 @@ export function SiteReport({
 
   const renderSection = (sectionId: string) => {
     switch (sectionId) {
-      case "overview":
-        return <OverviewSection data={data} compareData={compareData} />;
       case "crux":
         return <CruxSection experience={data.loadingExperience} title="Field Data" />;
       case "origin-crux":

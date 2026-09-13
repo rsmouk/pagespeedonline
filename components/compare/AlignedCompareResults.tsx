@@ -12,6 +12,7 @@ import {
   displayHost,
   extractCompareSummary,
 } from "@/lib/extract-compare-summary";
+import { formatDate } from "@/lib/formatters";
 import { extractScreenshot } from "@/lib/extract-screenshot";
 import { REPORT_SECTIONS } from "@/lib/report-sections";
 import type { ReportSectionId } from "@/lib/report-sections";
@@ -59,9 +60,7 @@ export function AlignedCompareResults({
 }: AlignedCompareResultsProps) {
   const showUrlA = displayUrlA ?? urlA;
   const showUrlB = displayUrlB ?? urlB;
-  const [openSection, setOpenSection] = useState<ReportSectionId | null>(
-    "overview"
-  );
+  const [openSection, setOpenSection] = useState<ReportSectionId | null>(null);
   const [differencesOnly, setDifferencesOnly] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -182,6 +181,7 @@ export function AlignedCompareResults({
             siteLabelB={displayHost(showUrlB)}
             subtitleA={`${strategyLabel} · ${labelA}`}
             subtitleB={`${strategyLabel} · ${labelB}`}
+            analysisDate={formatDate(scanA.data!.analysisUTCTimestamp)}
             winnerLabelA={labelA}
             winnerLabelB={labelB}
             perfScoreA={summary.perfScoreA}

@@ -1,4 +1,3 @@
-import { OverviewSection } from "@/components/sections/OverviewSection";
 import { CruxSection } from "@/components/sections/CruxSection";
 import { LighthouseMetaSection } from "@/components/sections/LighthouseMetaSection";
 import { CategoriesSection } from "@/components/sections/CategoriesSection";
@@ -26,8 +25,6 @@ export function SectionContent({
   const lh = data.lighthouseResult;
 
   switch (sectionId) {
-    case "overview":
-      return <OverviewSection data={data} compareData={compareData} />;
     case "crux":
       return <CruxSection experience={data.loadingExperience} title="Field Data" />;
     case "origin-crux":

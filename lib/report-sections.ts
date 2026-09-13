@@ -1,5 +1,4 @@
 export const REPORT_SECTIONS = [
-  { id: "overview", title: "Overview & Scores", subtitle: "Top-level metadata and category scores" },
   { id: "crux", title: "Field Data (CrUX)", subtitle: "Chrome User Experience Report — page URL" },
   { id: "origin-crux", title: "Origin Field Data", subtitle: "CrUX data for the origin" },
   { id: "meta", title: "Lighthouse Metadata", subtitle: "URLs, version, environment, config" },
