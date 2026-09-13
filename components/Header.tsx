@@ -5,9 +5,11 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface HeaderProps {
   actions?: React.ReactNode;
+  /** Shown in a full-width row below the navbar on mobile only */
+  mobileBar?: React.ReactNode;
 }
 
-export function Header({ actions }: HeaderProps) {
+export function Header({ actions, mobileBar }: HeaderProps) {
   return (
     <header className="no-print border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
       <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-4 sm:gap-4 sm:px-6">
@@ -36,6 +38,13 @@ export function Header({ actions }: HeaderProps) {
           <ThemeToggle />
         </div>
       </div>
+      {mobileBar ? (
+        <div className="border-t border-slate-200 bg-white/90 px-4 py-2.5 dark:border-slate-800 dark:bg-slate-950/90 sm:hidden">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2">
+            {mobileBar}
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

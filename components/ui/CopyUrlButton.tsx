@@ -8,12 +8,14 @@ interface CopyUrlButtonProps {
   getUrl?: () => string;
   label?: string;
   className?: string;
+  alwaysShowLabel?: boolean;
 }
 
 export function CopyUrlButton({
   getUrl,
   label = "Copy link",
   className,
+  alwaysShowLabel = false,
 }: CopyUrlButtonProps) {
   const [copied, setCopied] = useState(false);
 
@@ -52,10 +54,16 @@ export function CopyUrlButton({
       ) : (
         <Link2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       )}
-      <span className="hidden min-[400px]:inline">
+      <span
+        className={
+          alwaysShowLabel ? "inline" : "hidden min-[400px]:inline"
+        }
+      >
         {copied ? "Copied!" : label}
       </span>
-      <span className="min-[400px]:hidden">{copied ? "✓" : "Link"}</span>
+      {!alwaysShowLabel && (
+        <span className="min-[400px]:hidden">{copied ? "✓" : "Link"}</span>
+      )}
     </button>
   );
 }

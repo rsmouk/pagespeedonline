@@ -8,6 +8,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ScanProgress } from "@/components/ScanProgress";
 import { AlignedCompareResults } from "@/components/compare/AlignedCompareResults";
+import { SingleSiteResults } from "@/components/compare/SingleSiteResults";
 import { ScanErrorPanel } from "@/components/compare/ScanErrorPanel";
 import { CopyUrlButton } from "@/components/ui/CopyUrlButton";
 import { DownloadJsonButton } from "@/components/ui/DownloadJsonButton";
@@ -171,6 +172,22 @@ export function CompareReportPage() {
       const mode =
         (sessionStorage.getItem(SESSION_IMPORT_MODE) as CompareMode) ??
         "two-sites";
+
+      if (mode === "single-site") {
+        if (!rawA) return;
+        const report = JSON.parse(rawA) as ImportedReport;
+        const loaded = importedReportToScans(report, "Site");
+        setCompareMode("single-site");
+        setUrlA(report.url);
+        setUrlB("");
+        setLabelA("Site");
+        setScans(loaded);
+        setImportReady(true);
+        sessionStorage.removeItem(SESSION_IMPORT_A);
+        sessionStorage.removeItem(SESSION_IMPORT_MODE);
+        return;
+      }
+
       if (!rawA || !rawB) return;
 
       const reportA = JSON.parse(rawA) as ImportedReport;
@@ -305,6 +322,15 @@ export function CompareReportPage() {
       return;
     }
 
+    if (mode === "single-site") {
+      const url = normalizeUrl(searchParams.get("url") ?? "");
+      if (!url) return;
+      setUrlA(url);
+      setUrlB("");
+      setLabelA("Site");
+      return;
+    }
+
     const a = normalizeUrl(searchParams.get("a") ?? "");
     const b = normalizeUrl(searchParams.get("b") ?? "");
     if (a && b) {
@@ -317,7 +343,8 @@ export function CompareReportPage() {
 
   useEffect(() => {
     if (importReady || captureDone) return;
-    if (!urlA || !urlB) return;
+    if (!urlA) return;
+    if (compareMode !== "single-site" && !urlB) return;
     if (compareMode === "before-after" && !baseUrl) return;
 
     const fetchUrlA = compareMode === "before-after" ? baseUrl : urlA;
@@ -326,7 +353,7 @@ export function CompareReportPage() {
     if (needsScan(scans, urlA, strategy)) {
       runScan(fetchUrlA, urlA, strategy, `${labelA} · ${strategy}`);
     }
-    if (needsScan(scans, urlB, strategy)) {
+    if (compareMode !== "single-site" && needsScan(scans, urlB, strategy)) {
       runScan(fetchUrlB, urlB, strategy, `${labelB} · ${strategy}`);
     }
   }, [
@@ -362,19 +389,28 @@ export function CompareReportPage() {
     }
   };
 
+  const isSingleSite = compareMode === "single-site";
   const scanA = getScanState(scans, urlA, strategy);
   const scanB = getScanState(scans, urlB, strategy);
-  const canShowReport =
-    scanA?.status === "done" &&
-    scanB?.status === "done" &&
-    scanA.data &&
-    scanB.data;
-  const missingData = !urlA || !urlB;
-  const visibleScans = scans.filter(
-    (s) =>
+  const canShowReport = isSingleSite
+    ? scanA?.status === "done" && Boolean(scanA.data)
+    : scanA?.status === "done" &&
+      scanB?.status === "done" &&
+      Boolean(scanA.data) &&
+      Boolean(scanB.data);
+  const missingData = isSingleSite ? !urlA : !urlA || !urlB;
+  const visibleScans = scans.filter((s) => {
+    if (isSingleSite) {
+      return (
+        s.url === urlA &&
+        (s.strategy === strategy || s.status === "loading")
+      );
+    }
+    return (
       (s.url === urlA || s.url === urlB) &&
       (s.strategy === strategy || s.status === "loading")
-  );
+    );
+  });
 
   const displayUrlA =
     compareMode === "before-after" ? baseUrl || urlA.split("#")[0] : urlA;
@@ -382,6 +418,10 @@ export function CompareReportPage() {
     compareMode === "before-after" ? baseUrl || urlB.split("#")[0] : urlB;
 
   const getComparisonJson = useCallback(() => {
+    if (isSingleSite) {
+      if (!scanA?.data) return "{}";
+      return JSON.stringify(scanA.data, null, 2);
+    }
     if (!scanA?.data || !scanB?.data) return "{}";
     return fullComparisonToJson(
       buildFullComparisonExport({
@@ -392,38 +432,59 @@ export function CompareReportPage() {
         dataB: scanB.data,
       })
     );
-  }, [displayUrlA, displayUrlB, strategy, scanA?.data, scanB?.data]);
+  }, [isSingleSite, displayUrlA, displayUrlB, strategy, scanA?.data, scanB?.data]);
+
+  const showReportActions =
+    (!missingData && !captureDone) || canShowReport;
+
+  const renderReportActions = (mobileBar = false) => (
+    <>
+      {!missingData && !captureDone && (
+        <CopyUrlButton
+          label="Copy link"
+          alwaysShowLabel={mobileBar}
+          className={mobileBar ? "flex-1 justify-center" : undefined}
+        />
+      )}
+      {canShowReport && (
+        <>
+          <DownloadJsonButton
+            getPayload={getComparisonJson}
+            filename={jsonFilename(
+              isSingleSite ? "lighthouse-report" : "lighthouse-compare"
+            )}
+            label="Download JSON"
+            alwaysShowLabel={mobileBar}
+            className={mobileBar ? "flex-1 justify-center" : undefined}
+          />
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={exporting}
+            className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 ${
+              mobileBar ? "flex-1 justify-center" : ""
+            }`}
+          >
+            {exporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            <span className={mobileBar ? "inline" : "hidden sm:inline"}>
+              Export PDF
+            </span>
+          </button>
+        </>
+      )}
+    </>
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <Header
         actions={
           <>
-            {!missingData && !captureDone && (
-              <CopyUrlButton label="Copy link" />
-            )}
-            {canShowReport && (
-              <>
-                <DownloadJsonButton
-                  getPayload={getComparisonJson}
-                  filename={jsonFilename("lighthouse-compare")}
-                  label="Download JSON"
-                />
-                <button
-                  type="button"
-                  onClick={handleExportPdf}
-                  disabled={exporting}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  {exporting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  <span className="hidden sm:inline">Export PDF</span>
-                </button>
-              </>
-            )}
+            <div className="hidden sm:contents">{renderReportActions()}</div>
             <Link
               href="/"
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -432,6 +493,9 @@ export function CompareReportPage() {
               <span className="hidden sm:inline">Home</span>
             </Link>
           </>
+        }
+        mobileBar={
+          showReportActions ? renderReportActions(true) : undefined
         }
       />
 
@@ -477,21 +541,31 @@ export function CompareReportPage() {
         {!missingData && !captureDone && !canShowReport && (
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {compareMode === "before-after" ? "Before & After" : "Comparing"}
+              {isSingleSite
+                ? "Analyzing site"
+                : compareMode === "before-after"
+                  ? "Before & After"
+                  : "Comparing"}
             </p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div
+              className={`mt-2 grid gap-2 ${isSingleSite ? "" : "sm:grid-cols-2"}`}
+            >
               <p className="truncate text-xs text-slate-500">
-                <span className="font-medium text-slate-600 dark:text-slate-400">
-                  {labelA}:
-                </span>{" "}
+                {!isSingleSite && (
+                  <span className="font-medium text-slate-600 dark:text-slate-400">
+                    {labelA}:{" "}
+                  </span>
+                )}
                 {displayUrlA}
               </p>
-              <p className="truncate text-xs text-slate-500">
-                <span className="font-medium text-slate-600 dark:text-slate-400">
-                  {labelB}:
-                </span>{" "}
-                {displayUrlB}
-              </p>
+              {!isSingleSite && (
+                <p className="truncate text-xs text-slate-500">
+                  <span className="font-medium text-slate-600 dark:text-slate-400">
+                    {labelB}:
+                  </span>{" "}
+                  {displayUrlB}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -504,8 +578,21 @@ export function CompareReportPage() {
           </p>
         )}
 
+        {!captureDone && !missingData && isSingleSite && (
+          <div id="report-container">
+            <SingleSiteResults
+              scan={scanA}
+              url={displayUrlA}
+              strategy={strategy}
+              onStrategyChange={handleStrategyChange}
+              onRetry={() => retryScan("a")}
+            />
+          </div>
+        )}
+
         {!captureDone &&
           !missingData &&
+          !isSingleSite &&
           (canShowReport ||
             scanA?.status === "loading" ||
             scanB?.status === "loading") && (
@@ -524,7 +611,7 @@ export function CompareReportPage() {
             </div>
           )}
 
-        {!loading && !canShowReport && !missingData && !captureDone && (
+        {!loading && !canShowReport && !missingData && !captureDone && !isSingleSite && (
           <div className="space-y-3">
             {scanA?.status === "error" && (
               <ScanErrorPanel

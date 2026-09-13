@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, GitCompare, Search, Upload } from "lucide-react";
+import { Clock, GitCompare, Globe, Search, Upload } from "lucide-react";
 import { UrlCompareInputs } from "@/components/UrlCompareInputs";
 import { JsonFileUpload } from "@/components/ui/JsonFileUpload";
 import {
@@ -26,6 +26,7 @@ import { cn } from "@/lib/cn";
 
 const MODE_TABS: { id: CompareMode; label: string; icon: typeof GitCompare }[] = [
   { id: "two-sites", label: "Two Sites", icon: GitCompare },
+  { id: "single-site", label: "Single Site", icon: Globe },
   { id: "before-after", label: "Before & After", icon: Clock },
 ];
 
@@ -40,6 +41,7 @@ export function LighthouseCompareForm() {
   const [jsonFileB, setJsonFileB] = useState<File | null>(null);
   const [jsonBefore, setJsonBefore] = useState<File | null>(null);
   const [jsonAfter, setJsonAfter] = useState<File | null>(null);
+  const [jsonSingle, setJsonSingle] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [beforeSavedAt, setBeforeSavedAt] = useState<string | null>(null);
 
@@ -114,6 +116,35 @@ export function LighthouseCompareForm() {
     );
   };
 
+  const handleSingleSiteSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const url = normalizeUrl(singleUrl);
+    if (!url) return;
+    router.push(
+      `/compare?mode=single-site&url=${encodeURIComponent(url)}`
+    );
+  };
+
+  const handleSingleSiteJson = (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!jsonSingle) {
+      setError("Upload a Lighthouse JSON report.");
+      return;
+    }
+    readJsonFile(jsonSingle)
+      .then((raw) => {
+        const report = parseReportJson(raw);
+        sessionStorage.setItem(SESSION_IMPORT_A, JSON.stringify(report));
+        sessionStorage.setItem(SESSION_IMPORT_MODE, "single-site");
+        router.push("/compare?source=import&mode=single-site");
+      })
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Import failed.")
+      );
+  };
+
   const handleBeforeAfterJson = (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -141,9 +172,13 @@ export function LighthouseCompareForm() {
       onSubmit={
         compareMode === "two-sites"
           ? handleTwoSitesSubmit
-          : inputMode === "json"
-            ? handleBeforeAfterJson
-            : handleBeforeCompare
+          : compareMode === "single-site"
+            ? inputMode === "json"
+              ? handleSingleSiteJson
+              : handleSingleSiteSubmit
+            : inputMode === "json"
+              ? handleBeforeAfterJson
+              : handleBeforeCompare
       }
       className="mx-auto mt-10 max-w-4xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900"
     >
@@ -196,6 +231,39 @@ export function LighthouseCompareForm() {
             accent="slate"
           />
         </div>
+      )}
+
+      {compareMode === "single-site" && inputMode === "url" && (
+        <div className="rounded-2xl border-2 border-teal-200/80 bg-gradient-to-br from-teal-50/90 via-white to-emerald-50/60 p-5 dark:border-teal-900/50 dark:from-teal-950/30 dark:via-slate-900 dark:to-emerald-950/20">
+          <label
+            htmlFor="single-site-url"
+            className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-600 text-xs font-bold text-white">
+              URL
+            </span>
+            Website URL
+          </label>
+          <input
+            id="single-site-url"
+            type="url"
+            value={singleUrl}
+            onChange={(e) => setSingleUrl(e.target.value)}
+            placeholder="https://example.com"
+            required
+            className="w-full rounded-xl border-2 border-slate-200/80 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-500/15 dark:border-slate-600 dark:bg-slate-800 dark:focus:border-teal-400"
+          />
+        </div>
+      )}
+
+      {compareMode === "single-site" && inputMode === "json" && (
+        <JsonFileUpload
+          id="json-single-site"
+          label="Lighthouse JSON report"
+          file={jsonSingle}
+          onFileChange={setJsonSingle}
+          accent="teal"
+        />
       )}
 
       {compareMode === "before-after" && inputMode === "url" && (
@@ -284,6 +352,19 @@ export function LighthouseCompareForm() {
         >
           <Search className="h-4 w-4" />
           Compare Lighthouse
+        </button>
+      )}
+
+      {compareMode === "single-site" && (
+        <button
+          type="submit"
+          disabled={
+            inputMode === "url" ? !normalizeUrl(singleUrl) : !jsonSingle
+          }
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 py-3.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50 dark:bg-teal-500 dark:text-teal-950 dark:hover:bg-teal-400"
+        >
+          <Search className="h-4 w-4" />
+          Analyze Site
         </button>
       )}
 

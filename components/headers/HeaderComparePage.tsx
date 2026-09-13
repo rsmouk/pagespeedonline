@@ -77,20 +77,33 @@ export function HeaderComparePage() {
         actions={
           <>
             {canCopy && (
-              <DownloadJsonButton
-                getPayload={getPayload}
-                filename={jsonFilename("header-compare")}
-                label="Download JSON"
-              />
+              <div className="hidden sm:contents">
+                <DownloadJsonButton
+                  getPayload={getPayload}
+                  filename={jsonFilename("header-compare")}
+                  label="Download JSON"
+                />
+              </div>
             )}
             <Link
               href="/headers"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <ArrowLeft className="h-4 w-4" />
-              Header Tool
+              <span className="hidden sm:inline">Header Tool</span>
             </Link>
           </>
+        }
+        mobileBar={
+          canCopy ? (
+            <DownloadJsonButton
+              getPayload={getPayload}
+              filename={jsonFilename("header-compare")}
+              label="Download JSON"
+              alwaysShowLabel
+              className="w-full justify-center"
+            />
+          ) : undefined
         }
       />
 

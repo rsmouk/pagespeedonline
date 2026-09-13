@@ -9,6 +9,7 @@ interface DownloadJsonButtonProps {
   filename: string;
   label?: string;
   className?: string;
+  alwaysShowLabel?: boolean;
 }
 
 export function DownloadJsonButton({
@@ -16,6 +17,7 @@ export function DownloadJsonButton({
   filename,
   label = "Download JSON",
   className,
+  alwaysShowLabel = false,
 }: DownloadJsonButtonProps) {
   const handleDownload = () => {
     downloadJsonFile(getPayload(), filename);
@@ -33,8 +35,10 @@ export function DownloadJsonButton({
       )}
     >
       <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-      <span className="hidden min-[400px]:inline">{label}</span>
-      <span className="min-[400px]:hidden">JSON</span>
+      <span className={alwaysShowLabel ? "inline" : "hidden min-[400px]:inline"}>
+        {label}
+      </span>
+      {!alwaysShowLabel && <span className="min-[400px]:hidden">JSON</span>}
     </button>
   );
 }

@@ -1,4 +1,4 @@
-export type CompareMode = "two-sites" | "before-after";
+export type CompareMode = "two-sites" | "before-after" | "single-site";
 export type InputMode = "url" | "json";
 export type BeforeAfterAction = "capture" | "compare";
 
