@@ -7,6 +7,7 @@ import {
   Gauge,
   Layers,
   Moon,
+  Network,
   Search,
   Smartphone,
   Zap,
@@ -16,6 +17,24 @@ import { Footer } from "@/components/Footer";
 import { MockCharts } from "@/components/landing/MockCharts";
 import { GoogleAttribution } from "@/components/GoogleAttribution";
 import { normalizeUrl } from "@/lib/formatters";
+import { cn } from "@/lib/cn";
+
+type ToolId = "lighthouse" | "headers";
+
+const TOOLS = [
+  {
+    id: "lighthouse" as const,
+    label: "Lighthouse Compare",
+    icon: Gauge,
+    description: "Full PageSpeed / Lighthouse side-by-side report",
+  },
+  {
+    id: "headers" as const,
+    label: "HTTP Header Compare",
+    icon: Network,
+    description: "Chrome DevTools-style request & response headers",
+  },
+];
 
 const FEATURES = [
   {
@@ -46,6 +65,7 @@ const FEATURES = [
 
 export function LandingPage() {
   const router = useRouter();
+  const [tool, setTool] = useState<ToolId>("lighthouse");
   const [urlA, setUrlA] = useState("");
   const [urlB, setUrlB] = useState("");
 
@@ -55,9 +75,8 @@ export function LandingPage() {
     const b = normalizeUrl(urlB);
     if (!a || !b) return;
 
-    router.push(
-      `/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`
-    );
+    const path = tool === "lighthouse" ? "/compare" : "/headers";
+    router.push(`${path}?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
   };
 
   return (
@@ -65,7 +84,6 @@ export function LandingPage() {
       <Header />
 
       <main className="flex-1">
-        {/* Hero */}
         <section className="relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -start-24 -top-24 h-96 w-96 rounded-full bg-teal-400/10 blur-3xl" />
@@ -76,26 +94,50 @@ export function LandingPage() {
             <div className="mx-auto max-w-3xl text-center">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-sm text-teal-700 dark:border-teal-800 dark:bg-teal-950/50 dark:text-teal-300">
                 <Zap className="h-4 w-4" />
-                Powered by Google Lighthouse
+                Website analysis & comparison tools
               </div>
               <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-slate-50">
-                Compare Website Performance{" "}
+                Compare Websites{" "}
                 <span className="text-teal-600 dark:text-teal-400">
                   Side by Side
                 </span>
               </h1>
               <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-                Run Google PageSpeed Insights on two URLs and get a full
-                Lighthouse comparison report — mobile, desktop, and every audit
-                in one place.
+                Lighthouse performance reports or HTTP header inspection — pick a
+                tool, enter two URLs, and compare instantly.
               </p>
             </div>
 
-            {/* URL form */}
             <form
               onSubmit={handleSubmit}
               className="mx-auto mt-10 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-lg dark:border-slate-800 dark:bg-slate-900"
             >
+              <div className="mb-5 grid gap-3 sm:grid-cols-2">
+                {TOOLS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setTool(item.id)}
+                    className={cn(
+                      "rounded-xl border p-4 text-start transition",
+                      tool === item.id
+                        ? "border-teal-500 bg-teal-50 ring-2 ring-teal-500/20 dark:border-teal-500 dark:bg-teal-950/40"
+                        : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/50"
+                    )}
+                  >
+                    <div className="mb-2 flex items-center gap-2">
+                      <item.icon className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        {item.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {item.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label
@@ -138,30 +180,35 @@ export function LandingPage() {
                 className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50 dark:bg-teal-500 dark:text-teal-950 dark:hover:bg-teal-400"
               >
                 <Search className="h-4 w-4" />
-                Compare Both Sites
+                {tool === "lighthouse" ? "Compare Lighthouse" : "Compare Headers"}
               </button>
             </form>
 
             <div className="mx-auto mt-6 max-w-3xl">
-              <GoogleAttribution compact />
+              {tool === "lighthouse" ? (
+                <GoogleAttribution compact />
+              ) : (
+                <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                  Sends browser-like GET requests from the server with Chrome-style
+                  headers (User-Agent, Accept-Language, Cache-Control, Sec-Fetch-*).
+                </p>
+              )}
             </div>
           </div>
         </section>
 
-        {/* Mock charts preview */}
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
               Rich Performance Insights
             </h2>
             <p className="mt-2 text-slate-500 dark:text-slate-400">
-              Preview of the metrics and comparisons you&apos;ll receive
+              Preview of the Lighthouse metrics and comparisons you&apos;ll receive
             </p>
           </div>
           <MockCharts />
         </section>
 
-        {/* Features */}
         <section className="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/50">
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
             <div className="mb-10 text-center">
@@ -190,7 +237,6 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Decorative shapes */}
         <section className="relative overflow-hidden py-16">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <div className="relative rounded-3xl border border-slate-200 bg-gradient-to-br from-teal-50 to-slate-50 p-10 text-center dark:border-slate-800 dark:from-teal-950/30 dark:to-slate-900">
@@ -199,8 +245,8 @@ export function LandingPage() {
                 Ready to compare?
               </h2>
               <p className="mx-auto mt-2 max-w-md text-slate-500 dark:text-slate-400">
-                Enter two URLs above and get a comprehensive Lighthouse report
-                powered by Google&apos;s PageSpeed Insights API.
+                Choose Lighthouse or HTTP Headers above, enter two URLs, and get
+                an aligned comparison report.
               </p>
             </div>
           </div>

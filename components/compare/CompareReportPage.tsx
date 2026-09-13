@@ -9,6 +9,11 @@ import { Footer } from "@/components/Footer";
 import { ScanProgress } from "@/components/ScanProgress";
 import { AlignedCompareResults } from "@/components/compare/AlignedCompareResults";
 import { GoogleAttribution } from "@/components/GoogleAttribution";
+import { CopyJsonButton } from "@/components/ui/CopyJsonButton";
+import {
+  buildFullComparisonExport,
+  fullComparisonToJson,
+} from "@/lib/extract-section-data";
 import { fetchPageSpeed } from "@/lib/pagespeed-client";
 import { normalizeUrl } from "@/lib/formatters";
 import { sanitizePageSpeedResult } from "@/lib/sanitize-pagespeed";
@@ -125,25 +130,44 @@ export function CompareReportPage() {
       (s.strategy === strategy || s.status === "loading")
   );
 
+  const getComparisonJson = useCallback(() => {
+    if (!scanA?.data || !scanB?.data) return "{}";
+    return fullComparisonToJson(
+      buildFullComparisonExport({
+        urlA,
+        urlB,
+        strategy,
+        dataA: scanA.data,
+        dataB: scanB.data,
+      })
+    );
+  }, [urlA, urlB, strategy, scanA?.data, scanB?.data]);
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <Header
         actions={
           <>
             {canShowReport && (
-              <button
-                type="button"
-                onClick={handleExportPdf}
-                disabled={exporting}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
-                {exporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                Export PDF
-              </button>
+              <>
+                <CopyJsonButton
+                  getPayload={getComparisonJson}
+                  label="Copy JSON"
+                />
+                <button
+                  type="button"
+                  onClick={handleExportPdf}
+                  disabled={exporting}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {exporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Export PDF
+                </button>
+              </>
             )}
             <Link
               href="/"

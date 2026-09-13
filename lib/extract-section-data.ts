@@ -121,3 +121,48 @@ export function buildSectionExportPayload(
 export function sectionExportToJson(payload: SectionExportPayload): string {
   return JSON.stringify(payload, null, 2);
 }
+
+export interface FullComparisonExport {
+  exportedAt: string;
+  strategy: Strategy;
+  siteA: {
+    url: string;
+    finalUrl?: string;
+    data: PageSpeedResult;
+  };
+  siteB: {
+    url: string;
+    finalUrl?: string;
+    data: PageSpeedResult;
+  };
+}
+
+export function buildFullComparisonExport(options: {
+  urlA: string;
+  urlB: string;
+  strategy: Strategy;
+  dataA: PageSpeedResult;
+  dataB: PageSpeedResult;
+}): FullComparisonExport {
+  const lhA = options.dataA.lighthouseResult;
+  const lhB = options.dataB.lighthouseResult;
+
+  return {
+    exportedAt: new Date().toISOString(),
+    strategy: options.strategy,
+    siteA: {
+      url: options.urlA,
+      finalUrl: lhA.finalUrl ?? lhA.finalDisplayedUrl ?? options.urlA,
+      data: options.dataA,
+    },
+    siteB: {
+      url: options.urlB,
+      finalUrl: lhB.finalUrl ?? lhB.finalDisplayedUrl ?? options.urlB,
+      data: options.dataB,
+    },
+  };
+}
+
+export function fullComparisonToJson(payload: FullComparisonExport): string {
+  return JSON.stringify(payload, null, 2);
+}

@@ -7,6 +7,7 @@ import { StrategyTabs } from "@/components/StrategyTabs";
 import { Badge } from "@/components/ui/Badge";
 import { REPORT_SECTIONS } from "@/lib/report-sections";
 import type { ReportSectionId } from "@/lib/report-sections";
+import { getSectionBackground } from "@/lib/section-styles";
 import type { ScanState, Strategy } from "@/lib/types";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 
@@ -155,19 +156,19 @@ export function AlignedCompareResults({
       {/* Shared accordion rows — one section, two columns side by side */}
       {bothReady && (
         <div className="space-y-3">
-          {REPORT_SECTIONS.map((section) => (
+          {REPORT_SECTIONS.map((section, index) => (
             <Accordion
               key={section.id}
               title={section.title}
               subtitle={section.subtitle}
               open={openSection === section.id}
               onToggle={() => handleSectionToggle(section.id)}
+              className={getSectionBackground(index)}
             >
               <div className="grid items-start gap-4 lg:grid-cols-2">
                 <SiteSectionPanel
                   siteLabel="Site A"
                   url={urlA}
-                  strategy={strategy}
                   sectionId={section.id}
                   data={scanA.data!}
                   compareData={scanB.data}
@@ -175,7 +176,6 @@ export function AlignedCompareResults({
                 <SiteSectionPanel
                   siteLabel="Site B"
                   url={urlB}
-                  strategy={strategy}
                   sectionId={section.id}
                   data={scanB.data!}
                   compareData={scanA.data}
