@@ -15,6 +15,10 @@ interface AlignedCompareResultsProps {
   scans: ScanState[];
   urlA: string;
   urlB: string;
+  labelA?: string;
+  labelB?: string;
+  displayUrlA?: string;
+  displayUrlB?: string;
   strategy: Strategy;
   onStrategyChange: (strategy: Strategy) => void;
 }
@@ -31,9 +35,15 @@ export function AlignedCompareResults({
   scans,
   urlA,
   urlB,
+  labelA = "Site A",
+  labelB = "Site B",
+  displayUrlA,
+  displayUrlB,
   strategy,
   onStrategyChange,
 }: AlignedCompareResultsProps) {
+  const showUrlA = displayUrlA ?? urlA;
+  const showUrlB = displayUrlB ?? urlB;
   const [openSection, setOpenSection] = useState<ReportSectionId | null>(
     "overview"
   );
@@ -129,22 +139,22 @@ export function AlignedCompareResults({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-                Site A
+                {labelA}
               </h2>
               {renderStatus(scanA)}
             </div>
-            <p className="mt-1 truncate text-xs text-slate-500">{urlA}</p>
+            <p className="mt-1 truncate text-xs text-slate-500">{showUrlA}</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-                Site B
+                {labelB}
               </h2>
               {renderStatus(scanB)}
             </div>
-            <p className="mt-1 truncate text-xs text-slate-500">{urlB}</p>
+            <p className="mt-1 truncate text-xs text-slate-500">{showUrlB}</p>
           </div>
         </div>
       </div>
@@ -167,15 +177,15 @@ export function AlignedCompareResults({
             >
               <div className="grid items-start gap-4 lg:grid-cols-2">
                 <SiteSectionPanel
-                  siteLabel="Site A"
-                  url={urlA}
+                  siteLabel={labelA}
+                  url={showUrlA}
                   sectionId={section.id}
                   data={scanA.data!}
                   compareData={scanB.data}
                 />
                 <SiteSectionPanel
-                  siteLabel="Site B"
-                  url={urlB}
+                  siteLabel={labelB}
+                  url={showUrlB}
                   sectionId={section.id}
                   data={scanB.data!}
                   compareData={scanA.data}
@@ -189,8 +199,8 @@ export function AlignedCompareResults({
       {/* Loading / error states when not both ready */}
       {!bothReady && (
         <div className="grid gap-4 lg:grid-cols-2">
-          {renderSitePanel(scanA, "Site A")}
-          {renderSitePanel(scanB, "Site B")}
+          {renderSitePanel(scanA, labelA)}
+          {renderSitePanel(scanB, labelB)}
         </div>
       )}
     </div>

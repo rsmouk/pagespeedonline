@@ -1,22 +1,18 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import {
   BarChart3,
   Gauge,
   Layers,
   Moon,
-  Search,
   Smartphone,
   Zap,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { MockCharts } from "@/components/landing/MockCharts";
-import { UrlCompareInputs } from "@/components/UrlCompareInputs";
+import { LighthouseCompareForm } from "@/components/compare/LighthouseCompareForm";
 import { GoogleAttribution } from "@/components/GoogleAttribution";
-import { normalizeUrl } from "@/lib/formatters";
 
 const FEATURES = [
   {
@@ -46,20 +42,6 @@ const FEATURES = [
 ];
 
 export function LandingPage() {
-  const router = useRouter();
-  const [urlA, setUrlA] = useState("");
-  const [urlB, setUrlB] = useState("");
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const a = normalizeUrl(urlA);
-    const b = normalizeUrl(urlB);
-    if (!a || !b) return;
-    router.push(
-      `/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`
-    );
-  };
-
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <Header />
@@ -90,26 +72,7 @@ export function LandingPage() {
               </p>
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="mx-auto mt-10 max-w-4xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900"
-            >
-              <UrlCompareInputs
-                idPrefix="lighthouse"
-                urlA={urlA}
-                urlB={urlB}
-                onUrlAChange={setUrlA}
-                onUrlBChange={setUrlB}
-              />
-              <button
-                type="submit"
-                disabled={!normalizeUrl(urlA) || !normalizeUrl(urlB)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 py-3.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50 dark:bg-teal-500 dark:text-teal-950 dark:hover:bg-teal-400"
-              >
-                <Search className="h-4 w-4" />
-                Compare Lighthouse
-              </button>
-            </form>
+            <LighthouseCompareForm />
 
             <div className="mx-auto mt-6 max-w-3xl">
               <GoogleAttribution compact />

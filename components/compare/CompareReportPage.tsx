@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Download, Loader2, ArrowLeft } from "lucide-react";
+import { Download, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ScanProgress } from "@/components/ScanProgress";
 import { AlignedCompareResults } from "@/components/compare/AlignedCompareResults";
 import { GoogleAttribution } from "@/components/GoogleAttribution";
-import { CopyJsonButton } from "@/components/ui/CopyJsonButton";
+import { DownloadJsonButton } from "@/components/ui/DownloadJsonButton";
 import {
   buildFullComparisonExport,
   fullComparisonToJson,
@@ -23,37 +23,65 @@ import {
   needsScan,
   upsertScan,
 } from "@/lib/scan-store";
-import type { ScanState, Strategy } from "@/lib/types";
+import {
+  saveBeforeSnapshot,
+  getBeforeSnapshot,
+} from "@/lib/before-after-storage";
+import type { CompareMode } from "@/lib/compare-mode";
+import {
+  SESSION_IMPORT_A,
+  SESSION_IMPORT_B,
+  SESSION_IMPORT_MODE,
+} from "@/lib/compare-mode";
+import type { ImportedReport } from "@/lib/report-import";
+import { importedReportToScans, mergeImportedScans } from "@/lib/import-to-scans";
+import { phaseScanUrl } from "@/lib/scan-keys";
+import { jsonFilename } from "@/lib/download-json";
+import type { PageSpeedResult, ScanState, Strategy } from "@/lib/types";
 import { scanKey } from "@/lib/types";
+
+const STRATEGIES: Strategy[] = ["mobile", "desktop"];
 
 export function CompareReportPage() {
   const searchParams = useSearchParams();
+  const [compareMode, setCompareMode] = useState<CompareMode>("two-sites");
+  const [baseUrl, setBaseUrl] = useState("");
   const [urlA, setUrlA] = useState("");
   const [urlB, setUrlB] = useState("");
+  const [labelA, setLabelA] = useState("Site A");
+  const [labelB, setLabelB] = useState("Site B");
   const [scans, setScans] = useState<ScanState[]>([]);
   const [strategy, setStrategy] = useState<Strategy>("mobile");
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [captureDone, setCaptureDone] = useState(false);
+  const [importReady, setImportReady] = useState(false);
   const inFlight = useRef(new Set<string>());
+  const initRef = useRef(false);
 
   const patchScan = useCallback((scan: ScanState) => {
     setScans((prev) => upsertScan(prev, scan));
   }, []);
 
   const runScan = useCallback(
-    async (url: string, scanStrategy: Strategy, label: string) => {
-      const key = scanKey(url, scanStrategy);
+    async (
+      displayUrl: string,
+      scanUrl: string,
+      scanStrategy: Strategy,
+      label: string
+    ) => {
+      const key = scanKey(scanUrl, scanStrategy);
       if (inFlight.current.has(key)) return;
 
       inFlight.current.add(key);
       setLoading(true);
 
-      const loading = createLoadingScan(url, scanStrategy, label);
+      const loading = createLoadingScan(scanUrl, scanStrategy, label);
       patchScan(loading);
 
       try {
-        const raw = await fetchPageSpeed(url, scanStrategy);
+        const raw = await fetchPageSpeed(displayUrl, scanStrategy);
         const data = sanitizePageSpeedResult(raw);
         patchScan({
           ...loading,
@@ -61,6 +89,7 @@ export function CompareReportPage() {
           data,
           error: undefined,
         });
+        return data;
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Unknown error";
@@ -69,6 +98,7 @@ export function CompareReportPage() {
           status: "error",
           error: message,
         });
+        return undefined;
       } finally {
         inFlight.current.delete(key);
         if (inFlight.current.size === 0) setLoading(false);
@@ -77,25 +107,176 @@ export function CompareReportPage() {
     [patchScan]
   );
 
-  useEffect(() => {
-    const paramA = searchParams.get("a") ?? "";
-    const paramB = searchParams.get("b") ?? "";
-    const a = normalizeUrl(paramA);
-    const b = normalizeUrl(paramB);
-    if (a) setUrlA(a);
-    if (b) setUrlB(b);
-  }, [searchParams]);
+  const loadFromImport = useCallback(() => {
+    try {
+      const rawA = sessionStorage.getItem(SESSION_IMPORT_A);
+      const rawB = sessionStorage.getItem(SESSION_IMPORT_B);
+      const mode =
+        (sessionStorage.getItem(SESSION_IMPORT_MODE) as CompareMode) ??
+        "two-sites";
+      if (!rawA || !rawB) return;
+
+      const reportA = JSON.parse(rawA) as ImportedReport;
+      const reportB = JSON.parse(rawB) as ImportedReport;
+
+      let scansA = importedReportToScans(
+        reportA,
+        mode === "before-after" ? "Before" : "Site A"
+      );
+      let scansB = importedReportToScans(
+        reportB,
+        mode === "before-after" ? "After" : "Site B"
+      );
+
+      if (mode === "before-after") {
+        const beforeUrl = phaseScanUrl(reportA.url, "before");
+        const afterUrl = phaseScanUrl(reportB.url, "after");
+        scansA = scansA.map((s) => ({
+          ...s,
+          url: beforeUrl,
+          key: scanKey(beforeUrl, s.strategy),
+        }));
+        scansB = scansB.map((s) => ({
+          ...s,
+          url: afterUrl,
+          key: scanKey(afterUrl, s.strategy),
+        }));
+        setBaseUrl(reportA.url);
+        setUrlA(beforeUrl);
+        setUrlB(afterUrl);
+      } else {
+        setUrlA(scansA[0]?.url ?? reportA.url);
+        setUrlB(scansB[0]?.url ?? reportB.url);
+      }
+
+      setCompareMode(mode);
+      setScans(mergeImportedScans(scansA, scansB));
+      setLabelA(mode === "before-after" ? "Before" : "Site A");
+      setLabelB(mode === "before-after" ? "After" : "Site B");
+      setImportReady(true);
+
+      sessionStorage.removeItem(SESSION_IMPORT_A);
+      sessionStorage.removeItem(SESSION_IMPORT_B);
+      sessionStorage.removeItem(SESSION_IMPORT_MODE);
+    } catch {
+      setExportError("Failed to load imported JSON reports.");
+    }
+  }, []);
+
+  const loadBeforeFromStorage = useCallback(
+    (url: string) => {
+      const snap = getBeforeSnapshot();
+      if (!snap || snap.url !== url) return false;
+
+      const beforeUrl = phaseScanUrl(url, "before");
+      const loaded: ScanState[] = [];
+
+      for (const s of STRATEGIES) {
+        const data = snap.reports[s];
+        if (!data) continue;
+        loaded.push({
+          key: scanKey(beforeUrl, s),
+          url: beforeUrl,
+          strategy: s,
+          label: `Before · ${s}`,
+          status: "done",
+          data,
+        });
+      }
+
+      if (!loaded.length) return false;
+      setScans((prev) => {
+        let next = prev;
+        for (const scan of loaded) next = upsertScan(next, scan);
+        return next;
+      });
+      return true;
+    },
+    []
+  );
 
   useEffect(() => {
+    if (initRef.current) return;
+    const source = searchParams.get("source");
+    if (source === "import") {
+      initRef.current = true;
+      loadFromImport();
+      return;
+    }
+
+    const mode = (searchParams.get("mode") as CompareMode) ?? "two-sites";
+    setCompareMode(mode);
+
+    if (mode === "before-after") {
+      const url = normalizeUrl(searchParams.get("url") ?? "");
+      const action = searchParams.get("action");
+      if (!url) return;
+      initRef.current = true;
+      setBaseUrl(url);
+      setLabelA("Before");
+      setLabelB("After");
+      const beforeScanUrl = phaseScanUrl(url, "before");
+      const afterScanUrl = phaseScanUrl(url, "after");
+
+      if (action === "capture") {
+        setUrlA(beforeScanUrl);
+        (async () => {
+          const reports: Partial<Record<Strategy, PageSpeedResult>> = {};
+          for (const s of STRATEGIES) {
+            const data = await runScan(url, beforeScanUrl, s, `Before · ${s}`);
+            if (data) reports[s] = data;
+          }
+          if (reports.mobile || reports.desktop) {
+            saveBeforeSnapshot(url, reports);
+            setCaptureDone(true);
+          }
+        })();
+      } else if (action === "compare") {
+        setUrlA(beforeScanUrl);
+        setUrlB(afterScanUrl);
+        loadBeforeFromStorage(url);
+      }
+      return;
+    }
+
+    const a = normalizeUrl(searchParams.get("a") ?? "");
+    const b = normalizeUrl(searchParams.get("b") ?? "");
+    if (a && b) {
+      initRef.current = true;
+      setUrlA(a);
+      setUrlB(b);
+      setLabelA("Site A");
+      setLabelB("Site B");
+    }
+  }, [searchParams, loadFromImport, loadBeforeFromStorage, runScan]);
+
+  useEffect(() => {
+    if (importReady || captureDone) return;
     if (!urlA || !urlB) return;
+    if (compareMode === "before-after" && !baseUrl) return;
+
+    const fetchUrlA = compareMode === "before-after" ? baseUrl : urlA;
+    const fetchUrlB = compareMode === "before-after" ? baseUrl : urlB;
 
     if (needsScan(scans, urlA, strategy)) {
-      runScan(urlA, strategy, `Site A · ${strategy}`);
+      runScan(fetchUrlA, urlA, strategy, `${labelA} · ${strategy}`);
     }
     if (needsScan(scans, urlB, strategy)) {
-      runScan(urlB, strategy, `Site B · ${strategy}`);
+      runScan(fetchUrlB, urlB, strategy, `${labelB} · ${strategy}`);
     }
-  }, [urlA, urlB, strategy, scans, runScan]);
+  }, [
+    urlA,
+    urlB,
+    baseUrl,
+    strategy,
+    scans,
+    runScan,
+    compareMode,
+    labelA,
+    labelB,
+    importReady,
+    captureDone,
+  ]);
 
   const handleStrategyChange = useCallback((next: Strategy) => {
     setStrategy(next);
@@ -123,25 +304,30 @@ export function CompareReportPage() {
     scanB?.status === "done" &&
     scanA.data &&
     scanB.data;
-  const missingUrls = !urlA || !urlB;
+  const missingData = !urlA || !urlB;
   const visibleScans = scans.filter(
     (s) =>
       (s.url === urlA || s.url === urlB) &&
       (s.strategy === strategy || s.status === "loading")
   );
 
+  const displayUrlA =
+    compareMode === "before-after" ? baseUrl || urlA.split("#")[0] : urlA;
+  const displayUrlB =
+    compareMode === "before-after" ? baseUrl || urlB.split("#")[0] : urlB;
+
   const getComparisonJson = useCallback(() => {
     if (!scanA?.data || !scanB?.data) return "{}";
     return fullComparisonToJson(
       buildFullComparisonExport({
-        urlA,
-        urlB,
+        urlA: displayUrlA,
+        urlB: displayUrlB,
         strategy,
         dataA: scanA.data,
         dataB: scanB.data,
       })
     );
-  }, [urlA, urlB, strategy, scanA?.data, scanB?.data]);
+  }, [displayUrlA, displayUrlB, strategy, scanA?.data, scanB?.data]);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
@@ -150,31 +336,32 @@ export function CompareReportPage() {
           <>
             {canShowReport && (
               <>
-                <CopyJsonButton
+                <DownloadJsonButton
                   getPayload={getComparisonJson}
-                  label="Copy JSON"
+                  filename={jsonFilename("lighthouse-compare")}
+                  label="Download JSON"
                 />
                 <button
                   type="button"
                   onClick={handleExportPdf}
                   disabled={exporting}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   {exporting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  Export PDF
+                  <span className="hidden sm:inline">Export PDF</span>
                 </button>
               </>
             )}
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <ArrowLeft className="h-4 w-4" />
-              Home
+              <span className="hidden sm:inline">Home</span>
             </Link>
           </>
         }
@@ -185,7 +372,30 @@ export function CompareReportPage() {
           <GoogleAttribution compact />
         </div>
 
-        {missingUrls && !loading && (
+        {captureDone && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-900 dark:bg-emerald-950/30">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <div>
+                <p className="font-medium text-emerald-800 dark:text-emerald-200">
+                  Before snapshot saved in your browser
+                </p>
+                <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                  Make your site changes, then run{" "}
+                  <strong>Compare After</strong> for {baseUrl}
+                </p>
+                <Link
+                  href={`/compare?mode=before-after&action=compare&url=${encodeURIComponent(baseUrl)}`}
+                  className="mt-3 inline-flex rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 dark:bg-teal-500 dark:text-teal-950"
+                >
+                  Compare After Now
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {missingData && !loading && !importReady && !captureDone && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-900 dark:bg-amber-950/30">
             <p className="text-sm text-amber-800 dark:text-amber-200">
               Missing URLs. Please start a comparison from the home page.
@@ -200,23 +410,23 @@ export function CompareReportPage() {
           </div>
         )}
 
-        {!missingUrls && (
+        {!missingData && !captureDone && (
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              Comparing
+              {compareMode === "before-after" ? "Before & After" : "Comparing"}
             </p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <p className="truncate text-xs text-slate-500">
                 <span className="font-medium text-slate-600 dark:text-slate-400">
-                  A:
+                  {labelA}:
                 </span>{" "}
-                {urlA}
+                {displayUrlA}
               </p>
               <p className="truncate text-xs text-slate-500">
                 <span className="font-medium text-slate-600 dark:text-slate-400">
-                  B:
+                  {labelB}:
                 </span>{" "}
-                {urlB}
+                {displayUrlB}
               </p>
             </div>
           </div>
@@ -230,7 +440,8 @@ export function CompareReportPage() {
           </p>
         )}
 
-        {!missingUrls &&
+        {!captureDone &&
+          !missingData &&
           (canShowReport ||
             scanA?.status === "loading" ||
             scanB?.status === "loading") && (
@@ -239,16 +450,28 @@ export function CompareReportPage() {
                 scans={scans}
                 urlA={urlA}
                 urlB={urlB}
+                labelA={labelA}
+                labelB={labelB}
+                displayUrlA={displayUrlA}
+                displayUrlB={displayUrlB}
                 strategy={strategy}
                 onStrategyChange={handleStrategyChange}
               />
             </div>
           )}
 
-        {!loading && !canShowReport && !missingUrls && (
+        {!loading && !canShowReport && !missingData && !captureDone && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
-            {scanA?.status === "error" && <p>Site A: {scanA.error}</p>}
-            {scanB?.status === "error" && <p>Site B: {scanB.error}</p>}
+            {scanA?.status === "error" && (
+              <p>
+                {labelA}: {scanA.error}
+              </p>
+            )}
+            {scanB?.status === "error" && (
+              <p>
+                {labelB}: {scanB.error}
+              </p>
+            )}
             {!scanA?.error && !scanB?.error && (
               <p>Unable to load comparison results. Please try again.</p>
             )}

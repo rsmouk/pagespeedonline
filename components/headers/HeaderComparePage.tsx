@@ -8,7 +8,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { HeaderHoverProvider } from "@/components/headers/HeaderHoverContext";
 import { HeaderSitePanel } from "@/components/headers/HeaderSitePanel";
-import { CopyJsonButton } from "@/components/ui/CopyJsonButton";
+import { DownloadJsonButton } from "@/components/ui/DownloadJsonButton";
+import { jsonFilename } from "@/lib/download-json";
 import { fetchUrlHeaders } from "@/lib/headers-client";
 import {
   buildHeaderCompareExport,
@@ -76,9 +77,10 @@ export function HeaderComparePage() {
         actions={
           <>
             {canCopy && (
-              <CopyJsonButton
+              <DownloadJsonButton
                 getPayload={getPayload}
-                label="Copy Header JSON"
+                filename={jsonFilename("header-compare")}
+                label="Download JSON"
               />
             )}
             <Link
@@ -139,9 +141,10 @@ export function HeaderComparePage() {
                 </span>
               )}
               {canCopy && (
-                <CopyJsonButton
+                <DownloadJsonButton
                   getPayload={getPayload}
-                  label="Copy Header JSON"
+                  filename={jsonFilename("header-compare")}
+                  label="Download JSON"
                 />
               )}
             </div>
