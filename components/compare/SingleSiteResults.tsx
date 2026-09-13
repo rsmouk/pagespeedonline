@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Accordion } from "@/components/ui/Accordion";
 import { ScanErrorPanel } from "@/components/compare/ScanErrorPanel";
 import { SectionContent } from "@/components/report/SectionContent";
+import { SimpleReport } from "@/components/report/SimpleReport";
 import { StrategyTabs } from "@/components/StrategyTabs";
-import { ScoreRing } from "@/components/ui/ScoreRing";
 import { displayHost } from "@/lib/extract-compare-summary";
-import { formatCategoryLabel, formatDate } from "@/lib/formatters";
+import { extractSimpleReport } from "@/lib/extract-simple-report";
 import { REPORT_SECTIONS } from "@/lib/report-sections";
 import type { ReportSectionId } from "@/lib/report-sections";
 import { getSectionBackground } from "@/lib/section-styles";
-import { LIGHTHOUSE_CATEGORIES } from "@/lib/types";
 import type { ScanState, Strategy } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
@@ -31,10 +30,12 @@ export function SingleSiteResults({
   onRetry,
 }: SingleSiteResultsProps) {
   const [openSection, setOpenSection] = useState<ReportSectionId | null>(null);
-
-  const strategyLabel =
-    strategy.charAt(0).toUpperCase() + strategy.slice(1);
   const host = displayHost(url);
+
+  const simpleReport = useMemo(
+    () => (scan?.data ? extractSimpleReport(scan.data) : null),
+    [scan?.data]
+  );
 
   const handleSectionToggle = useCallback((sectionId: ReportSectionId) => {
     const scrollY = window.scrollY;
@@ -75,10 +76,9 @@ export function SingleSiteResults({
     );
   }
 
-  if (!scan?.data) return null;
+  if (!scan?.data || !simpleReport) return null;
 
   const reportData = scan.data;
-  const categories = reportData.lighthouseResult.categories ?? {};
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -86,42 +86,12 @@ export function SingleSiteResults({
         <StrategyTabs value={strategy} onChange={onStrategyChange} />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="border-b border-slate-100 bg-teal-50/50 px-5 py-4 dark:border-slate-800 dark:bg-teal-950/20">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-600 text-xs font-bold text-white">
-              1
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
-                {host}
-              </p>
-              <p className="text-xs text-slate-500">
-                {strategyLabel} · Analyzed {formatDate(reportData.analysisUTCTimestamp)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Category Scores
-          </p>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {LIGHTHOUSE_CATEGORIES.map((key) => (
-              <ScoreRing
-                key={key}
-                score={categories[key]?.score}
-                label={formatCategoryLabel(key)}
-                size="sm"
-              />
-            ))}
-          </div>
-        </div>
-
-      </div>
+      <SimpleReport report={simpleReport} />
 
       <div className="space-y-3">
+        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Technical details
+        </p>
         {REPORT_SECTIONS.map((section, index) => (
           <Accordion
             key={section.id}
