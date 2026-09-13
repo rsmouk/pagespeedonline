@@ -1,14 +1,19 @@
 import { AuditCard } from "@/components/audit/AuditCard";
+import { auditDiffers } from "@/lib/audit-compare";
 import type { Audit, LighthouseResult } from "@/lib/types";
 
 interface AuditsSectionProps {
   lighthouse: LighthouseResult;
+  compareLighthouse?: LighthouseResult;
+  differencesOnly?: boolean;
   groupFilter?: string;
   title?: string;
 }
 
 export function AuditsSection({
   lighthouse,
+  compareLighthouse,
+  differencesOnly = false,
   groupFilter,
   title,
 }: AuditsSectionProps) {
@@ -27,12 +32,21 @@ export function AuditsSection({
     );
   }
 
+  if (differencesOnly && compareLighthouse) {
+    const otherAudits = compareLighthouse.audits ?? {};
+    auditList = auditList.filter((audit) =>
+      auditDiffers(audit, otherAudits[audit.id])
+    );
+  }
+
   auditList.sort((a, b) => a.title.localeCompare(b.title));
 
   if (!auditList.length) {
     return (
       <p className="text-sm text-slate-500 dark:text-slate-400">
-        No audits in this group.
+        {differencesOnly
+          ? "No differences in this group — both sites match."
+          : "No audits in this group."}
       </p>
     );
   }

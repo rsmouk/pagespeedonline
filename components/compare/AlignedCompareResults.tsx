@@ -18,6 +18,13 @@ import { getSectionBackground } from "@/lib/section-styles";
 import type { ScanState, Strategy } from "@/lib/types";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 
+const AUDIT_SECTIONS = new Set<ReportSectionId>([
+  "metrics",
+  "insights",
+  "diagnostics",
+  "all-audits",
+]);
+
 interface AlignedCompareResultsProps {
   scans: ScanState[];
   urlA: string;
@@ -54,6 +61,7 @@ export function AlignedCompareResults({
   const [openSection, setOpenSection] = useState<ReportSectionId | null>(
     "overview"
   );
+  const [differencesOnly, setDifferencesOnly] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const scanA = useMemo(
@@ -222,6 +230,18 @@ export function AlignedCompareResults({
       {/* Shared accordion rows — one section, two columns side by side */}
       {bothReady && (
         <div className="space-y-3">
+          <div className="flex justify-end">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-teal-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-teal-700">
+              <input
+                type="checkbox"
+                checked={differencesOnly}
+                onChange={(e) => setDifferencesOnly(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 dark:border-slate-600"
+              />
+              Show audit differences only
+            </label>
+          </div>
+
           {REPORT_SECTIONS.map((section, index) => (
             <Accordion
               key={section.id}
@@ -238,6 +258,9 @@ export function AlignedCompareResults({
                   sectionId={section.id}
                   data={scanA.data!}
                   compareData={scanB.data}
+                  differencesOnly={
+                    differencesOnly && AUDIT_SECTIONS.has(section.id)
+                  }
                 />
                 <SiteSectionPanel
                   siteLabel={labelB}
@@ -245,6 +268,9 @@ export function AlignedCompareResults({
                   sectionId={section.id}
                   data={scanB.data!}
                   compareData={scanA.data}
+                  differencesOnly={
+                    differencesOnly && AUDIT_SECTIONS.has(section.id)
+                  }
                 />
               </div>
             </Accordion>

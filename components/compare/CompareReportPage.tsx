@@ -8,6 +8,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ScanProgress } from "@/components/ScanProgress";
 import { AlignedCompareResults } from "@/components/compare/AlignedCompareResults";
+import { ScanErrorPanel } from "@/components/compare/ScanErrorPanel";
+import { CopyUrlButton } from "@/components/ui/CopyUrlButton";
 import { DownloadJsonButton } from "@/components/ui/DownloadJsonButton";
 import {
   buildFullComparisonExport,
@@ -16,7 +18,9 @@ import {
 import { fetchPageSpeed } from "@/lib/pagespeed-client";
 import { normalizeUrl } from "@/lib/formatters";
 import { sanitizePageSpeedResult } from "@/lib/sanitize-pagespeed";
+import { parsePageSpeedError, sleep } from "@/lib/pagespeed-errors";
 import {
+  clearScan,
   createLoadingScan,
   getScanState,
   needsScan,
@@ -40,6 +44,7 @@ import type { PageSpeedResult, ScanState, Strategy } from "@/lib/types";
 import { scanKey } from "@/lib/types";
 
 const STRATEGIES: Strategy[] = ["mobile", "desktop"];
+const MAX_SCAN_ATTEMPTS = 3;
 
 export function CompareReportPage() {
   const searchParams = useSearchParams();
@@ -68,10 +73,11 @@ export function CompareReportPage() {
       displayUrl: string,
       scanUrl: string,
       scanStrategy: Strategy,
-      label: string
+      label: string,
+      options?: { force?: boolean; maxAttempts?: number }
     ) => {
       const key = scanKey(scanUrl, scanStrategy);
-      if (inFlight.current.has(key)) return;
+      if (inFlight.current.has(key) && !options?.force) return;
 
       inFlight.current.add(key);
       setLoading(true);
@@ -79,23 +85,44 @@ export function CompareReportPage() {
       const loading = createLoadingScan(scanUrl, scanStrategy, label);
       patchScan(loading);
 
+      const maxAttempts = options?.maxAttempts ?? MAX_SCAN_ATTEMPTS;
+      let lastError = parsePageSpeedError(new Error("Unknown error"));
+
       try {
-        const raw = await fetchPageSpeed(displayUrl, scanStrategy);
-        const data = sanitizePageSpeedResult(raw);
-        patchScan({
-          ...loading,
-          status: "done",
-          data,
-          error: undefined,
-        });
-        return data;
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            if (attempt > 1) {
+              patchScan({ ...loading, status: "loading" });
+              await sleep(2000 * attempt);
+            }
+
+            const raw = await fetchPageSpeed(displayUrl, scanStrategy);
+            const data = sanitizePageSpeedResult(raw);
+            patchScan({
+              ...loading,
+              status: "done",
+              data,
+              error: undefined,
+              errorKind: undefined,
+            });
+            return data;
+          } catch (error) {
+            lastError = parsePageSpeedError(error);
+            if (
+              !lastError.retryable ||
+              attempt === maxAttempts ||
+              lastError.kind === "quota"
+            ) {
+              break;
+            }
+          }
+        }
+
         patchScan({
           ...loading,
           status: "error",
-          error: message,
+          error: lastError.userMessage,
+          errorKind: lastError.kind,
         });
         return undefined;
       } finally {
@@ -104,6 +131,37 @@ export function CompareReportPage() {
       }
     },
     [patchScan]
+  );
+
+  const retryScan = useCallback(
+    (side: "a" | "b") => {
+      const scanUrl = side === "a" ? urlA : urlB;
+      if (!scanUrl) return;
+
+      const fetchUrl =
+        compareMode === "before-after" ? baseUrl : scanUrl;
+      const siteLabel = side === "a" ? labelA : labelB;
+
+      inFlight.current.delete(scanKey(scanUrl, strategy));
+      setScans((prev) => clearScan(prev, scanUrl, strategy));
+      runScan(
+        fetchUrl,
+        scanUrl,
+        strategy,
+        `${siteLabel} · ${strategy}`,
+        { force: true }
+      );
+    },
+    [
+      urlA,
+      urlB,
+      baseUrl,
+      compareMode,
+      labelA,
+      labelB,
+      strategy,
+      runScan,
+    ]
   );
 
   const loadFromImport = useCallback(() => {
@@ -341,6 +399,9 @@ export function CompareReportPage() {
       <Header
         actions={
           <>
+            {!missingData && !captureDone && (
+              <CopyUrlButton label="Copy link" />
+            )}
             {canShowReport && (
               <>
                 <DownloadJsonButton
@@ -464,19 +525,27 @@ export function CompareReportPage() {
           )}
 
         {!loading && !canShowReport && !missingData && !captureDone && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+          <div className="space-y-3">
             {scanA?.status === "error" && (
-              <p>
-                {labelA}: {scanA.error}
-              </p>
+              <ScanErrorPanel
+                label={labelA}
+                message={scanA.error}
+                errorKind={scanA.errorKind}
+                onRetry={() => retryScan("a")}
+              />
             )}
             {scanB?.status === "error" && (
-              <p>
-                {labelB}: {scanB.error}
-              </p>
+              <ScanErrorPanel
+                label={labelB}
+                message={scanB.error}
+                errorKind={scanB.errorKind}
+                onRetry={() => retryScan("b")}
+              />
             )}
             {!scanA?.error && !scanB?.error && (
-              <p>Unable to load comparison results. Please try again.</p>
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+                Unable to load comparison results. Please try again.
+              </div>
             )}
           </div>
         )}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isQuotaErrorMessage } from "@/lib/pagespeed-errors";
 import { LIGHTHOUSE_CATEGORIES } from "@/lib/types";
 
 export const maxDuration = 60;
@@ -49,6 +50,18 @@ export async function GET(request: NextRequest) {
       const message =
         (data as { error?: { message?: string } })?.error?.message ??
         "PageSpeed API request failed.";
+
+      if (response.status === 429 || isQuotaErrorMessage(message)) {
+        return NextResponse.json(
+          {
+            code: "QUOTA_EXCEEDED",
+            error:
+              "Daily scan limit reached. Please try again tomorrow, or upload a saved Lighthouse JSON report instead.",
+          },
+          { status: 429 }
+        );
+      }
+
       return NextResponse.json({ error: message }, { status: response.status });
     }
 

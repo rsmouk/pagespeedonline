@@ -14,12 +14,14 @@ interface SectionContentProps {
   sectionId: ReportSectionId;
   data: PageSpeedResult;
   compareData?: PageSpeedResult;
+  differencesOnly?: boolean;
 }
 
 export function SectionContent({
   sectionId,
   data,
   compareData,
+  differencesOnly = false,
 }: SectionContentProps) {
   const lh = data.lighthouseResult;
 
@@ -41,22 +43,43 @@ export function SectionContent({
       return <CategoriesSection lighthouse={lh} />;
     case "metrics":
       return (
-        <AuditsSection lighthouse={lh} groupFilter="metrics" title="Metrics" />
+        <AuditsSection
+          lighthouse={lh}
+          compareLighthouse={compareData?.lighthouseResult}
+          differencesOnly={differencesOnly}
+          groupFilter="metrics"
+          title="Metrics"
+        />
       );
     case "insights":
       return (
-        <AuditsSection lighthouse={lh} groupFilter="insights" title="Insights" />
+        <AuditsSection
+          lighthouse={lh}
+          compareLighthouse={compareData?.lighthouseResult}
+          differencesOnly={differencesOnly}
+          groupFilter="insights"
+          title="Insights"
+        />
       );
     case "diagnostics":
       return (
         <AuditsSection
           lighthouse={lh}
+          compareLighthouse={compareData?.lighthouseResult}
+          differencesOnly={differencesOnly}
           groupFilter="diagnostics"
           title="Diagnostics"
         />
       );
     case "all-audits":
-      return <AuditsSection lighthouse={lh} title="All audits" />;
+      return (
+        <AuditsSection
+          lighthouse={lh}
+          compareLighthouse={compareData?.lighthouseResult}
+          differencesOnly={differencesOnly}
+          title="All audits"
+        />
+      );
     case "stack-packs":
       return <StackPacksSection stackPacks={lh.stackPacks} />;
     case "entities":

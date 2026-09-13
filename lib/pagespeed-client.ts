@@ -1,3 +1,8 @@
+import {
+  PageSpeedFetchError,
+  isQuotaErrorMessage,
+  parsePageSpeedError,
+} from "@/lib/pagespeed-errors";
 import type { PageSpeedResult, Strategy } from "./types";
 
 export async function fetchPageSpeed(
@@ -7,12 +12,26 @@ export async function fetchPageSpeed(
   const params = new URLSearchParams({ url, strategy });
   const response = await fetch(`/api/pagespeed?${params.toString()}`);
 
+  const body = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    code?: string;
+  };
+
   if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as {
-      error?: string;
-    };
-    throw new Error(body.error ?? `Request failed (${response.status})`);
+    const raw = body.error ?? `Request failed (${response.status})`;
+    if (
+      body.code === "QUOTA_EXCEEDED" ||
+      response.status === 429 ||
+      isQuotaErrorMessage(raw)
+    ) {
+      throw new PageSpeedFetchError(
+        raw,
+        "quota",
+        "Daily scan limit reached. Please try again tomorrow, or upload a saved Lighthouse JSON report instead."
+      );
+    }
+    throw parsePageSpeedError(new Error(raw));
   }
 
-  return response.json() as Promise<PageSpeedResult>;
+  return body as PageSpeedResult;
 }

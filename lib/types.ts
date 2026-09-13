@@ -152,6 +152,8 @@ export interface ScanRequest {
 
 export type ScanStatus = "idle" | "loading" | "done" | "error";
 
+export type ScanErrorKind = "quota" | "timeout" | "network" | "unknown";
+
 export interface ScanState {
   key: string;
   url: string;
@@ -160,6 +162,7 @@ export interface ScanState {
   status: ScanStatus;
   data?: PageSpeedResult;
   error?: string;
+  errorKind?: ScanErrorKind;
 }
 
 export interface CompareState {

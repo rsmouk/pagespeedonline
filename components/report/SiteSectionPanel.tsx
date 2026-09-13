@@ -10,6 +10,7 @@ interface SiteSectionPanelProps {
   sectionId: ReportSectionId;
   data: PageSpeedResult;
   compareData?: PageSpeedResult;
+  differencesOnly?: boolean;
 }
 
 export function SiteSectionPanel({
@@ -18,6 +19,7 @@ export function SiteSectionPanel({
   sectionId,
   data,
   compareData,
+  differencesOnly = false,
 }: SiteSectionPanelProps) {
   return (
     <div className="min-w-0 rounded-lg border border-white/60 bg-white/70 p-3 dark:border-slate-700/60 dark:bg-slate-950/30">
@@ -33,6 +35,7 @@ export function SiteSectionPanel({
         sectionId={sectionId}
         data={data}
         compareData={compareData}
+        differencesOnly={differencesOnly}
       />
     </div>
   );

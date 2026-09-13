@@ -42,3 +42,12 @@ export function createLoadingScan(
     status: "loading",
   };
 }
+
+/** Remove a scan so it can be fetched again (manual retry). */
+export function clearScan(
+  scans: ScanState[],
+  url: string,
+  strategy: Strategy
+): ScanState[] {
+  return scans.filter((s) => !(s.url === url && s.strategy === strategy));
+}
