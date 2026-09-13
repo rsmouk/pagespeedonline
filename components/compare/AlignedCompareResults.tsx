@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Accordion } from "@/components/ui/Accordion";
 import { CompareScreenshotsSection } from "@/components/compare/CompareScreenshotsSection";
 import { CompareSummaryCard } from "@/components/compare/CompareSummaryCard";
+import { ScanErrorPanel } from "@/components/compare/ScanErrorPanel";
 import { SiteSectionPanel } from "@/components/report/SiteSectionPanel";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { Badge } from "@/components/ui/Badge";
@@ -110,7 +111,11 @@ export function AlignedCompareResults({
     return null;
   };
 
-  const renderSitePanel = (scan: ScanState | undefined, siteLabel: string) => {
+  const renderSitePanel = (
+    scan: ScanState | undefined,
+    siteLabel: string,
+    siteUrl: string
+  ) => {
     if (scan?.status === "loading") {
       return (
         <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 py-12 dark:border-slate-700">
@@ -122,14 +127,12 @@ export function AlignedCompareResults({
 
     if (scan?.status === "error") {
       return (
-        <div className="min-h-[120px] rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/30">
-          <p className="text-sm font-medium text-rose-700 dark:text-rose-300">
-            {siteLabel} — failed
-          </p>
-          <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">
-            {scan.error}
-          </p>
-        </div>
+        <ScanErrorPanel
+          label={siteLabel}
+          url={siteUrl}
+          message={scan.error}
+          errorKind={scan.errorKind}
+        />
       );
     }
 
@@ -281,8 +284,8 @@ export function AlignedCompareResults({
       {/* Loading / error states when not both ready */}
       {!bothReady && (
         <div className="grid gap-4 lg:grid-cols-2">
-          {renderSitePanel(scanA, labelA)}
-          {renderSitePanel(scanB, labelB)}
+          {renderSitePanel(scanA, labelA, showUrlA)}
+          {renderSitePanel(scanB, labelB, showUrlB)}
         </div>
       )}
     </div>

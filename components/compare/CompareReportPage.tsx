@@ -529,6 +529,7 @@ export function CompareReportPage() {
             {scanA?.status === "error" && (
               <ScanErrorPanel
                 label={labelA}
+                url={displayUrlA}
                 message={scanA.error}
                 errorKind={scanA.errorKind}
                 onRetry={() => retryScan("a")}
@@ -537,6 +538,7 @@ export function CompareReportPage() {
             {scanB?.status === "error" && (
               <ScanErrorPanel
                 label={labelB}
+                url={displayUrlB}
                 message={scanB.error}
                 errorKind={scanB.errorKind}
                 onRetry={() => retryScan("b")}

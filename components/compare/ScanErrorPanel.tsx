@@ -3,6 +3,7 @@ import type { ScanErrorKind } from "@/lib/types";
 
 interface ScanErrorPanelProps {
   label: string;
+  url?: string;
   message?: string;
   errorKind?: ScanErrorKind;
   onRetry?: () => void;
@@ -11,6 +12,7 @@ interface ScanErrorPanelProps {
 
 export function ScanErrorPanel({
   label,
+  url,
   message,
   errorKind,
   onRetry,
@@ -26,7 +28,22 @@ export function ScanErrorPanel({
           <p className="font-medium text-rose-800 dark:text-rose-200">
             {label} — scan failed
           </p>
-          <p className="mt-1 text-sm text-rose-700 dark:text-rose-300">
+          {url && (
+            <p className="mt-1.5 text-xs font-medium text-rose-800/80 dark:text-rose-200/80">
+              URL:
+            </p>
+          )}
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 block break-all font-mono text-xs text-teal-700 underline-offset-2 hover:underline dark:text-teal-400"
+            >
+              {url}
+            </a>
+          )}
+          <p className="mt-2 text-sm text-rose-700 dark:text-rose-300">
             {message ?? "Unable to complete the scan."}
           </p>
           {!isQuota && onRetry && (
