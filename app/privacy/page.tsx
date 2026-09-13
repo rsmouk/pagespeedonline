@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 
-export const metadata = {
-  title: "Privacy Policy — Lighthouse Compare",
-};
+export const metadata = buildPageMetadata({
+  title: "Privacy Policy",
+  description:
+    "Privacy policy for Lighthouse Compare — how we process URLs, API requests, cookies, and local storage.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

@@ -1,8 +1,14 @@
-import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { RtlProvider } from "@/components/providers/RtlProvider";
+import {
+  webApplicationJsonLd,
+  webSiteJsonLd,
+} from "@/lib/seo/json-ld";
+import { rootMetadata } from "@/lib/seo/metadata";
+import { siteConfig } from "@/lib/site-config";
 import "./globals.css";
 
 const inter = Inter({
@@ -10,11 +16,7 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-export const metadata: Metadata = {
-  title: "Lighthouse Compare — PageSpeed Insights",
-  description:
-    "Compare two websites side-by-side with Google PageSpeed Insights API. Full Lighthouse reports with mobile and desktop analysis.",
-};
+export const metadata = rootMetadata;
 
 export default function RootLayout({
   children,
@@ -22,8 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={siteConfig.language} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
+        <JsonLd data={[webSiteJsonLd(), webApplicationJsonLd()]} />
         <ThemeProvider>
           <RtlProvider>
             {children}

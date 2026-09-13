@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 
-export const metadata = {
-  title: "Terms of Service — Lighthouse Compare",
-};
+export const metadata = buildPageMetadata({
+  title: "Terms of Service",
+  description:
+    "Terms of service for using Lighthouse Compare and related website analysis tools.",
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (
