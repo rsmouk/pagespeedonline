@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Accordion } from "@/components/ui/Accordion";
-import { SectionContent } from "@/components/report/SectionContent";
+import { SiteSectionPanel } from "@/components/report/SiteSectionPanel";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { Badge } from "@/components/ui/Badge";
 import { REPORT_SECTIONS } from "@/lib/report-sections";
@@ -161,26 +161,22 @@ export function AlignedCompareResults({
               onToggle={() => handleSectionToggle(section.id)}
             >
               <div className="grid items-start gap-4 lg:grid-cols-2">
-                <div className="min-w-0 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-teal-600 dark:text-teal-400">
-                    Site A
-                  </p>
-                  <SectionContent
-                    sectionId={section.id}
-                    data={scanA.data!}
-                    compareData={scanB.data}
-                  />
-                </div>
-                <div className="min-w-0 rounded-lg border border-slate-100 p-3 dark:border-slate-800">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-teal-600 dark:text-teal-400">
-                    Site B
-                  </p>
-                  <SectionContent
-                    sectionId={section.id}
-                    data={scanB.data!}
-                    compareData={scanA.data}
-                  />
-                </div>
+                <SiteSectionPanel
+                  siteLabel="Site A"
+                  url={urlA}
+                  strategy={strategy}
+                  sectionId={section.id}
+                  data={scanA.data!}
+                  compareData={scanB.data}
+                />
+                <SiteSectionPanel
+                  siteLabel="Site B"
+                  url={urlB}
+                  strategy={strategy}
+                  sectionId={section.id}
+                  data={scanB.data!}
+                  compareData={scanA.data}
+                />
               </div>
             </Accordion>
           ))}
