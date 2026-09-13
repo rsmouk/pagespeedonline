@@ -82,11 +82,11 @@ export function HeaderComparePage() {
               />
             )}
             <Link
-              href="/"
+              href="/headers"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <ArrowLeft className="h-4 w-4" />
-              Home
+              Header Tool
             </Link>
           </>
         }
@@ -110,11 +110,11 @@ export function HeaderComparePage() {
               Missing URLs. Start from the home page header compare tool.
             </p>
             <Link
-              href="/"
-              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-teal-600 hover:underline dark:text-teal-400"
+              href="/headers"
+              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to home
+              Back to Header Compare
             </Link>
           </div>
         )}

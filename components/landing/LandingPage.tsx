@@ -7,7 +7,6 @@ import {
   Gauge,
   Layers,
   Moon,
-  Network,
   Search,
   Smartphone,
   Zap,
@@ -15,26 +14,9 @@ import {
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { MockCharts } from "@/components/landing/MockCharts";
+import { UrlCompareInputs } from "@/components/UrlCompareInputs";
 import { GoogleAttribution } from "@/components/GoogleAttribution";
 import { normalizeUrl } from "@/lib/formatters";
-import { cn } from "@/lib/cn";
-
-type ToolId = "lighthouse" | "headers";
-
-const TOOLS = [
-  {
-    id: "lighthouse" as const,
-    label: "Lighthouse Compare",
-    icon: Gauge,
-    description: "Full PageSpeed / Lighthouse side-by-side report",
-  },
-  {
-    id: "headers" as const,
-    label: "HTTP Header Compare",
-    icon: Network,
-    description: "Chrome DevTools-style request & response headers",
-  },
-];
 
 const FEATURES = [
   {
@@ -65,7 +47,6 @@ const FEATURES = [
 
 export function LandingPage() {
   const router = useRouter();
-  const [tool, setTool] = useState<ToolId>("lighthouse");
   const [urlA, setUrlA] = useState("");
   const [urlB, setUrlB] = useState("");
 
@@ -74,9 +55,9 @@ export function LandingPage() {
     const a = normalizeUrl(urlA);
     const b = normalizeUrl(urlB);
     if (!a || !b) return;
-
-    const path = tool === "lighthouse" ? "/compare" : "/headers";
-    router.push(`${path}?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
+    router.push(
+      `/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`
+    );
   };
 
   return (
@@ -94,105 +75,44 @@ export function LandingPage() {
             <div className="mx-auto max-w-3xl text-center">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-sm text-teal-700 dark:border-teal-800 dark:bg-teal-950/50 dark:text-teal-300">
                 <Zap className="h-4 w-4" />
-                Website analysis & comparison tools
+                Powered by Google Lighthouse
               </div>
               <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-slate-50">
-                Compare Websites{" "}
+                Compare Website Performance{" "}
                 <span className="text-teal-600 dark:text-teal-400">
                   Side by Side
                 </span>
               </h1>
               <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-                Lighthouse performance reports or HTTP header inspection — pick a
-                tool, enter two URLs, and compare instantly.
+                Run Google PageSpeed Insights on two URLs and get a full
+                Lighthouse comparison report — mobile, desktop, and every audit
+                in one place.
               </p>
             </div>
 
             <form
               onSubmit={handleSubmit}
-              className="mx-auto mt-10 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-lg dark:border-slate-800 dark:bg-slate-900"
+              className="mx-auto mt-10 max-w-4xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900"
             >
-              <div className="mb-5 grid gap-3 sm:grid-cols-2">
-                {TOOLS.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setTool(item.id)}
-                    className={cn(
-                      "rounded-xl border p-4 text-start transition",
-                      tool === item.id
-                        ? "border-teal-500 bg-teal-50 ring-2 ring-teal-500/20 dark:border-teal-500 dark:bg-teal-950/40"
-                        : "border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/50"
-                    )}
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <item.icon className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                        {item.label}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {item.description}
-                    </p>
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="landing-url-a"
-                    className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
-                  >
-                    Site A — First URL
-                  </label>
-                  <input
-                    id="landing-url-a"
-                    type="url"
-                    value={urlA}
-                    onChange={(e) => setUrlA(e.target.value)}
-                    placeholder="https://example.com"
-                    required
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none ring-teal-500/30 focus:border-teal-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="landing-url-b"
-                    className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
-                  >
-                    Site B — Second URL
-                  </label>
-                  <input
-                    id="landing-url-b"
-                    type="url"
-                    value={urlB}
-                    onChange={(e) => setUrlB(e.target.value)}
-                    placeholder="https://another-site.com"
-                    required
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none ring-teal-500/30 focus:border-teal-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                  />
-                </div>
-              </div>
+              <UrlCompareInputs
+                idPrefix="lighthouse"
+                urlA={urlA}
+                urlB={urlB}
+                onUrlAChange={setUrlA}
+                onUrlBChange={setUrlB}
+              />
               <button
                 type="submit"
                 disabled={!normalizeUrl(urlA) || !normalizeUrl(urlB)}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50 dark:bg-teal-500 dark:text-teal-950 dark:hover:bg-teal-400"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 py-3.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50 dark:bg-teal-500 dark:text-teal-950 dark:hover:bg-teal-400"
               >
                 <Search className="h-4 w-4" />
-                {tool === "lighthouse" ? "Compare Lighthouse" : "Compare Headers"}
+                Compare Lighthouse
               </button>
             </form>
 
             <div className="mx-auto mt-6 max-w-3xl">
-              {tool === "lighthouse" ? (
-                <GoogleAttribution compact />
-              ) : (
-                <p className="text-center text-xs text-slate-500 dark:text-slate-400">
-                  Sends browser-like GET requests from the server with Chrome-style
-                  headers (User-Agent, Accept-Language, Cache-Control, Sec-Fetch-*).
-                </p>
-              )}
+              <GoogleAttribution compact />
             </div>
           </div>
         </section>
@@ -203,7 +123,7 @@ export function LandingPage() {
               Rich Performance Insights
             </h2>
             <p className="mt-2 text-slate-500 dark:text-slate-400">
-              Preview of the Lighthouse metrics and comparisons you&apos;ll receive
+              Sample comparison — shopfast.io vs megastore.com (demo data)
             </p>
           </div>
           <MockCharts />
@@ -245,8 +165,14 @@ export function LandingPage() {
                 Ready to compare?
               </h2>
               <p className="mx-auto mt-2 max-w-md text-slate-500 dark:text-slate-400">
-                Choose Lighthouse or HTTP Headers above, enter two URLs, and get
-                an aligned comparison report.
+                Enter two URLs above for a Lighthouse report, or use{" "}
+                <a
+                  href="/headers"
+                  className="font-medium text-violet-600 hover:underline dark:text-violet-400"
+                >
+                  Header Compare
+                </a>{" "}
+                for HTTP inspection.
               </p>
             </div>
           </div>

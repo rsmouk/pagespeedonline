@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { Loader2, Search } from "lucide-react";
+import { UrlCompareInputs } from "@/components/UrlCompareInputs";
 import { normalizeUrl } from "@/lib/formatters";
 
 interface UrlCompareFormProps {
@@ -31,42 +32,13 @@ export function UrlCompareForm({
       onSubmit={handleSubmit}
       className="no-print rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
     >
-      <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label
-            htmlFor="url-a"
-            className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
-          >
-            Site A — First URL
-          </label>
-          <input
-            id="url-a"
-            type="url"
-            value={urlA}
-            onChange={(e) => onUrlAChange(e.target.value)}
-            placeholder="https://example.com"
-            required
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none ring-teal-500/30 transition focus:border-teal-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="url-b"
-            className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
-          >
-            Site B — Second URL
-          </label>
-          <input
-            id="url-b"
-            type="url"
-            value={urlB}
-            onChange={(e) => onUrlBChange(e.target.value)}
-            placeholder="https://another-site.com"
-            required
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none ring-teal-500/30 transition focus:border-teal-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-          />
-        </div>
-      </div>
+      <UrlCompareInputs
+        idPrefix="form"
+        urlA={urlA}
+        urlB={urlB}
+        onUrlAChange={onUrlAChange}
+        onUrlBChange={onUrlBChange}
+      />
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-slate-500 dark:text-slate-400">
