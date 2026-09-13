@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { HeaderHoverProvider } from "@/components/headers/HeaderHoverContext";
 import { HeaderSitePanel } from "@/components/headers/HeaderSitePanel";
 import { CopyJsonButton } from "@/components/ui/CopyJsonButton";
 import { fetchUrlHeaders } from "@/lib/headers-client";
@@ -98,7 +99,8 @@ export function HeaderComparePage() {
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Browser-like GET requests with Chrome-style request headers. Differs
-            from DevTools are highlighted in amber.
+            are amber; hover a row to highlight the matching field on the other
+            site in teal.
           </p>
         </div>
 
@@ -147,22 +149,24 @@ export function HeaderComparePage() {
         )}
 
         {!missingUrls && (
-          <div className="grid items-start gap-4 lg:grid-cols-2">
-            <HeaderSitePanel
-              siteLabel="Site A"
-              url={urlA}
-              result={resultA}
-              loading={loading && !resultA}
-              compareHop={hopB}
-            />
-            <HeaderSitePanel
-              siteLabel="Site B"
-              url={urlB}
-              result={resultB}
-              loading={loading && !resultB}
-              compareHop={hopA}
-            />
-          </div>
+          <HeaderHoverProvider>
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+              <HeaderSitePanel
+                siteLabel="Site A"
+                url={urlA}
+                result={resultA}
+                loading={loading && !resultA}
+                compareHop={hopB}
+              />
+              <HeaderSitePanel
+                siteLabel="Site B"
+                url={urlB}
+                result={resultB}
+                loading={loading && !resultB}
+                compareHop={hopA}
+              />
+            </div>
+          </HeaderHoverProvider>
         )}
       </main>
 

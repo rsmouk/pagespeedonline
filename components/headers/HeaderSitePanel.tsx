@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2, AlertCircle } from "lucide-react";
+import { HeaderGeneralRow } from "@/components/headers/HeaderGeneralRow";
 import { HeaderTable } from "@/components/headers/HeaderTable";
 import type { HeaderHop, HeaderInspectResult } from "@/lib/header-types";
 
@@ -88,49 +89,42 @@ export function HeaderSitePanel({
           General
         </p>
         <dl className="space-y-1.5 text-xs">
-          <div className="grid grid-cols-[120px_1fr] gap-2">
-            <dt className="text-slate-500">Request URL</dt>
-            <dd className="break-all text-slate-800 dark:text-slate-100">
-              {finalHop.requestUrl}
-            </dd>
-          </div>
-          <div className="grid grid-cols-[120px_1fr] gap-2">
-            <dt className="text-slate-500">Request Method</dt>
-            <dd className="text-slate-800 dark:text-slate-100">
-              {finalHop.requestMethod}
-            </dd>
-          </div>
-          <div className="grid grid-cols-[120px_1fr] gap-2">
-            <dt className="text-slate-500">Status Code</dt>
-            <dd className="text-slate-800 dark:text-slate-100">
-              {finalHop.status} {finalHop.statusText}
-            </dd>
-          </div>
-          <div className="grid grid-cols-[120px_1fr] gap-2">
-            <dt className="text-slate-500">Remote Address</dt>
-            <dd className="text-slate-800 dark:text-slate-100">
-              {finalHop.remoteAddress ?? "—"}
-            </dd>
-          </div>
-          <div className="grid grid-cols-[120px_1fr] gap-2">
-            <dt className="text-slate-500">Final URL</dt>
-            <dd className="break-all text-slate-800 dark:text-slate-100">
-              {result.finalUrl}
-            </dd>
-          </div>
-          <div className="grid grid-cols-[120px_1fr] gap-2">
-            <dt className="text-slate-500">Duration</dt>
-            <dd className="text-slate-800 dark:text-slate-100">
-              {finalHop.durationMs} ms
-            </dd>
-          </div>
+          <HeaderGeneralRow
+            field="request-url"
+            label="Request URL"
+            value={finalHop.requestUrl}
+          />
+          <HeaderGeneralRow
+            field="request-method"
+            label="Request Method"
+            value={finalHop.requestMethod}
+          />
+          <HeaderGeneralRow
+            field="status-code"
+            label="Status Code"
+            value={`${finalHop.status} ${finalHop.statusText}`}
+          />
+          <HeaderGeneralRow
+            field="remote-address"
+            label="Remote Address"
+            value={finalHop.remoteAddress ?? "—"}
+          />
+          <HeaderGeneralRow
+            field="final-url"
+            label="Final URL"
+            value={result.finalUrl}
+          />
+          <HeaderGeneralRow
+            field="duration"
+            label="Duration"
+            value={`${finalHop.durationMs} ms`}
+          />
           {result.hops.length > 1 && (
-            <div className="grid grid-cols-[120px_1fr] gap-2">
-              <dt className="text-slate-500">Redirects</dt>
-              <dd className="text-slate-800 dark:text-slate-100">
-                {result.hops.length - 1} hop(s)
-              </dd>
-            </div>
+            <HeaderGeneralRow
+              field="redirects"
+              label="Redirects"
+              value={`${result.hops.length - 1} hop(s)`}
+            />
           )}
         </dl>
       </div>
@@ -157,6 +151,7 @@ export function HeaderSitePanel({
 
       <HeaderTable
         title="Response Headers"
+        sectionType="response"
         headers={finalHop.responseHeaders}
         highlightKeys={responseDiff}
         compareHeaders={compareHop?.responseHeaders}
@@ -164,6 +159,7 @@ export function HeaderSitePanel({
 
       <HeaderTable
         title="Request Headers"
+        sectionType="request"
         headers={finalHop.requestHeaders}
         highlightKeys={requestDiff}
         compareHeaders={compareHop?.requestHeaders}
