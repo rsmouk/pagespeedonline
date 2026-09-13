@@ -42,7 +42,7 @@ export function Accordion({
       <button
         type="button"
         onClick={handleToggle}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
       >
         <div>
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">

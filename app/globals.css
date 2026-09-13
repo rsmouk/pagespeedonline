@@ -25,6 +25,14 @@ body {
   color: var(--color-foreground);
 }
 
+html.rtl body {
+  direction: rtl;
+}
+
+html.rtl .rtl-flip {
+  transform: scaleX(-1);
+}
+
 @media print {
   .no-print {
     display: none !important;

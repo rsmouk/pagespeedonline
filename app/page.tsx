@@ -1,5 +1,5 @@
-import { ComparePage } from "@/components/ComparePage";
+import { LandingPage } from "@/components/landing/LandingPage";
 
 export default function Home() {
-  return <ComparePage />;
+  return <LandingPage />;
 }
