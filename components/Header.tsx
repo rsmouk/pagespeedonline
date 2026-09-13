@@ -40,7 +40,7 @@ export function Header({ actions, mobileBar }: HeaderProps) {
       </div>
       {mobileBar ? (
         <div className="border-t border-slate-200 bg-white/90 px-4 py-2.5 dark:border-slate-800 dark:bg-slate-950/90 sm:hidden">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2">
+          <div className="mx-auto flex max-w-7xl items-stretch gap-2">
             {mobileBar}
           </div>
         </div>

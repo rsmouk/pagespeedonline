@@ -201,9 +201,23 @@ export function SimpleReport({ report }: SimpleReportProps) {
           <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
             Discover what your real users experience
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            {report.fieldDataNote}
-          </p>
+          {report.fieldDataNote && (
+            <p
+              className="mt-1 text-xs text-slate-500 dark:text-slate-400"
+              spellCheck={false}
+            >
+              {report.fieldDataNote}
+              {report.fieldDataSource && (
+                <>
+                  {" "}
+                  <span className="text-slate-500 dark:text-slate-400">
+                    ({report.fieldDataSource})
+                  </span>
+                  .
+                </>
+              )}
+            </p>
+          )}
         </div>
 
         <CoreWebVitalsBanner passed={report.coreWebVitalsPassed} />

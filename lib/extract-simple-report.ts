@@ -32,6 +32,7 @@ export interface SimpleReportData {
   labMetrics: SimpleReportMetric[];
   coreWebVitalsPassed: boolean | null;
   fieldDataNote?: string;
+  fieldDataSource?: string;
   opportunities: SimpleReportOpportunity[];
   passedAudits: number;
   failedAudits: number;
@@ -254,14 +255,22 @@ function countAuditResults(lh: PageSpeedResult["lighthouseResult"]) {
   return { passed, failed };
 }
 
-function buildFieldDataNote(experience?: LoadingExperience): string | undefined {
+function buildFieldDataNote(experience?: LoadingExperience): {
+  note?: string;
+  source?: string;
+} {
   if (!experience) {
-    return "No real-user data available for this URL.";
+    return { note: "No real-user data available for this URL." };
   }
   if (experience.origin_fallback) {
-    return "Showing origin-level data — this page does not have enough Chrome user visits for its own report.";
+    return {
+      note: "Showing origin-level data — this page does not have enough Chrome user visits for its own report.",
+    };
   }
-  return "Based on Chrome User Experience Report (real users, last 28 days).";
+  return {
+    note: "Based on Chrome User Experience Report",
+    source: "real users, last 28 days",
+  };
 }
 
 function assessCoreWebVitals(fieldMetrics: SimpleReportMetric[]): boolean | null {
@@ -292,6 +301,7 @@ export function extractSimpleReport(data: PageSpeedResult): SimpleReportData {
   const fieldMetrics = extractFieldMetrics(data.loadingExperience);
   const labMetrics = extractLabMetrics(lh.audits ?? {});
   const { passed, failed } = countAuditResults(lh);
+  const fieldData = buildFieldDataNote(data.loadingExperience);
 
   return {
     url: data.id ?? lh.finalUrl ?? lh.requestedUrl ?? "—",
@@ -307,7 +317,8 @@ export function extractSimpleReport(data: PageSpeedResult): SimpleReportData {
     fieldMetrics,
     labMetrics,
     coreWebVitalsPassed: assessCoreWebVitals(fieldMetrics),
-    fieldDataNote: buildFieldDataNote(data.loadingExperience),
+    fieldDataNote: fieldData.note,
+    fieldDataSource: fieldData.source,
     opportunities: extractOpportunities(lh),
     passedAudits: passed,
     failedAudits: failed,

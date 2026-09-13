@@ -192,14 +192,14 @@ export function LighthouseCompareForm() {
               setError(null);
             }}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition",
+              "flex flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-[10px] font-medium leading-tight transition sm:flex-row sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm sm:leading-normal",
               compareMode === tab.id
                 ? "bg-white text-teal-700 shadow-sm dark:bg-slate-900 dark:text-teal-300"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
             )}
           >
-            <tab.icon className="h-4 w-4 shrink-0" />
-            {tab.label}
+            <tab.icon className="h-4 w-4 shrink-0 sm:h-4 sm:w-4" />
+            <span className="text-center">{tab.label}</span>
           </button>
         ))}
       </div>

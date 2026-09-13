@@ -489,6 +489,7 @@ export function CompareReportPage() {
         <CopyUrlButton
           label="Copy link"
           alwaysShowLabel={mobileBar}
+          stacked={mobileBar}
           className={mobileBar ? "flex-1 justify-center" : undefined}
         />
       )}
@@ -501,6 +502,7 @@ export function CompareReportPage() {
             )}
             label="Download JSON"
             alwaysShowLabel={mobileBar}
+            stacked={mobileBar}
             className={mobileBar ? "flex-1 justify-center" : undefined}
           />
           <button
@@ -508,7 +510,9 @@ export function CompareReportPage() {
             onClick={handleExportPdf}
             disabled={exporting}
             className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 ${
-              mobileBar ? "flex-1 justify-center" : ""
+              mobileBar
+                ? "flex-1 flex-col justify-center gap-1 py-2 text-[10px] leading-tight sm:flex-row sm:gap-1.5 sm:py-1.5 sm:text-sm sm:leading-normal"
+                : ""
             }`}
           >
             {exporting ? (
