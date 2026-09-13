@@ -8,7 +8,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ScanProgress } from "@/components/ScanProgress";
 import { AlignedCompareResults } from "@/components/compare/AlignedCompareResults";
-import { GoogleAttribution } from "@/components/GoogleAttribution";
 import { DownloadJsonButton } from "@/components/ui/DownloadJsonButton";
 import {
   buildFullComparisonExport,
@@ -58,7 +57,7 @@ export function CompareReportPage() {
   const [captureDone, setCaptureDone] = useState(false);
   const [importReady, setImportReady] = useState(false);
   const inFlight = useRef(new Set<string>());
-  const initRef = useRef(false);
+  const processedQuery = useRef("");
 
   const patchScan = useCallback((scan: ScanState) => {
     setScans((prev) => upsertScan(prev, scan));
@@ -196,10 +195,18 @@ export function CompareReportPage() {
   );
 
   useEffect(() => {
-    if (initRef.current) return;
+    const queryKey = searchParams.toString();
+    if (processedQuery.current === queryKey) return;
+    processedQuery.current = queryKey;
+
+    setCaptureDone(false);
+    setImportReady(false);
+    setExportError(null);
+    setScans([]);
+    inFlight.current.clear();
+
     const source = searchParams.get("source");
     if (source === "import") {
-      initRef.current = true;
       loadFromImport();
       return;
     }
@@ -211,7 +218,7 @@ export function CompareReportPage() {
       const url = normalizeUrl(searchParams.get("url") ?? "");
       const action = searchParams.get("action");
       if (!url) return;
-      initRef.current = true;
+
       setBaseUrl(url);
       setLabelA("Before");
       setLabelB("After");
@@ -220,6 +227,7 @@ export function CompareReportPage() {
 
       if (action === "capture") {
         setUrlA(beforeScanUrl);
+        setUrlB("");
         (async () => {
           const reports: Partial<Record<Strategy, PageSpeedResult>> = {};
           for (const s of STRATEGIES) {
@@ -242,7 +250,6 @@ export function CompareReportPage() {
     const a = normalizeUrl(searchParams.get("a") ?? "");
     const b = normalizeUrl(searchParams.get("b") ?? "");
     if (a && b) {
-      initRef.current = true;
       setUrlA(a);
       setUrlB(b);
       setLabelA("Site A");
@@ -368,10 +375,6 @@ export function CompareReportPage() {
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 sm:px-6">
-        <div className="no-print">
-          <GoogleAttribution compact />
-        </div>
-
         {captureDone && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-900 dark:bg-emerald-950/30">
             <div className="flex items-start gap-3">
@@ -410,7 +413,7 @@ export function CompareReportPage() {
           </div>
         )}
 
-        {!missingData && !captureDone && (
+        {!missingData && !captureDone && !canShowReport && (
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
               {compareMode === "before-after" ? "Before & After" : "Comparing"}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Gauge } from "lucide-react";
-import { NavBar } from "@/components/NavBar";
+import { NavBarDesktop, NavBarMobile } from "@/components/NavBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface HeaderProps {
@@ -12,6 +12,7 @@ export function Header({ actions }: HeaderProps) {
     <header className="no-print border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
       <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-4 sm:gap-4 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-6">
+          <NavBarMobile />
           <Link
             href="/"
             className="flex shrink-0 items-center gap-3 transition hover:opacity-90"
@@ -28,7 +29,7 @@ export function Header({ actions }: HeaderProps) {
               </p>
             </div>
           </Link>
-          <NavBar />
+          <NavBarDesktop />
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           {actions}

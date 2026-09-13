@@ -2,9 +2,16 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Accordion } from "@/components/ui/Accordion";
+import { CompareScreenshotsSection } from "@/components/compare/CompareScreenshotsSection";
+import { CompareSummaryCard } from "@/components/compare/CompareSummaryCard";
 import { SiteSectionPanel } from "@/components/report/SiteSectionPanel";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { Badge } from "@/components/ui/Badge";
+import {
+  displayHost,
+  extractCompareSummary,
+} from "@/lib/extract-compare-summary";
+import { extractScreenshot } from "@/lib/extract-screenshot";
 import { REPORT_SECTIONS } from "@/lib/report-sections";
 import type { ReportSectionId } from "@/lib/report-sections";
 import { getSectionBackground } from "@/lib/section-styles";
@@ -131,37 +138,86 @@ export function AlignedCompareResults({
     scanA.data &&
     scanB.data;
 
+  const summary = useMemo(() => {
+    const dataA = scanA?.data;
+    const dataB = scanB?.data;
+    if (!bothReady || !dataA || !dataB) return null;
+    return extractCompareSummary(dataA, dataB);
+  }, [bothReady, scanA?.data, scanB?.data]);
+
+  const screenshots = useMemo(() => {
+    const dataA = scanA?.data;
+    const dataB = scanB?.data;
+    if (!bothReady || !dataA || !dataB) return null;
+    return {
+      a: extractScreenshot(dataA),
+      b: extractScreenshot(dataB),
+    };
+  }, [bothReady, scanA?.data, scanB?.data]);
+
+  const strategyLabel =
+    strategy.charAt(0).toUpperCase() + strategy.slice(1);
+
   return (
     <div ref={containerRef} className="[overflow-anchor:none]">
-      {/* Column headers — aligned row */}
-      <div className="mb-4 grid gap-4 lg:grid-cols-2">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-                {labelA}
-              </h2>
-              {renderStatus(scanA)}
-            </div>
-            <p className="mt-1 truncate text-xs text-slate-500">{showUrlA}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-                {labelB}
-              </h2>
-              {renderStatus(scanB)}
-            </div>
-            <p className="mt-1 truncate text-xs text-slate-500">{showUrlB}</p>
-          </div>
-        </div>
-      </div>
-
       <div className="mb-6 flex justify-center">
         <StrategyTabs value={strategy} onChange={onStrategyChange} />
       </div>
+
+      {bothReady && summary && (
+        <div className="mb-6 space-y-6">
+          <CompareSummaryCard
+            siteLabelA={displayHost(showUrlA)}
+            siteLabelB={displayHost(showUrlB)}
+            subtitleA={`${strategyLabel} · ${labelA}`}
+            subtitleB={`${strategyLabel} · ${labelB}`}
+            winnerLabelA={labelA}
+            winnerLabelB={labelB}
+            perfScoreA={summary.perfScoreA}
+            perfScoreB={summary.perfScoreB}
+            categories={summary.categories}
+            cwv={summary.cwv}
+          />
+
+          {screenshots && (
+            <CompareScreenshotsSection
+              siteLabelA={displayHost(showUrlA)}
+              siteLabelB={displayHost(showUrlB)}
+              subtitleA={`${strategyLabel} · ${labelA}`}
+              subtitleB={`${strategyLabel} · ${labelB}`}
+              screenshotA={screenshots.a}
+              screenshotB={screenshots.b}
+            />
+          )}
+        </div>
+      )}
+
+      {!bothReady && (scanA || scanB) && (
+        <div className="mb-4 grid gap-4 lg:grid-cols-2">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                  {labelA}
+                </h2>
+                {renderStatus(scanA)}
+              </div>
+              <p className="mt-1 truncate text-xs text-slate-500">{showUrlA}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                  {labelB}
+                </h2>
+                {renderStatus(scanB)}
+              </div>
+              <p className="mt-1 truncate text-xs text-slate-500">{showUrlB}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Shared accordion rows — one section, two columns side by side */}
       {bothReady && (

@@ -12,7 +12,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { MockCharts } from "@/components/landing/MockCharts";
 import { LighthouseCompareForm } from "@/components/compare/LighthouseCompareForm";
-import { GoogleAttribution } from "@/components/GoogleAttribution";
 
 const FEATURES = [
   {
@@ -74,9 +73,6 @@ export function LandingPage() {
 
             <LighthouseCompareForm />
 
-            <div className="mx-auto mt-6 max-w-3xl">
-              <GoogleAttribution compact />
-            </div>
           </div>
         </section>
 
