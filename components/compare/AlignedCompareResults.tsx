@@ -14,6 +14,8 @@ interface AlignedCompareResultsProps {
   scans: ScanState[];
   urlA: string;
   urlB: string;
+  strategy: Strategy;
+  onStrategyChange: (strategy: Strategy) => void;
 }
 
 function getScan(
@@ -28,8 +30,9 @@ export function AlignedCompareResults({
   scans,
   urlA,
   urlB,
+  strategy,
+  onStrategyChange,
 }: AlignedCompareResultsProps) {
-  const [strategy, setStrategy] = useState<Strategy>("mobile");
   const [openSection, setOpenSection] = useState<ReportSectionId | null>(
     "overview"
   );
@@ -146,7 +149,7 @@ export function AlignedCompareResults({
       </div>
 
       <div className="mb-6 flex justify-center">
-        <StrategyTabs value={strategy} onChange={setStrategy} />
+        <StrategyTabs value={strategy} onChange={onStrategyChange} />
       </div>
 
       {/* Shared accordion rows — one section, two columns side by side */}

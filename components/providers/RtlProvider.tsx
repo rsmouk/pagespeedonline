@@ -9,21 +9,35 @@ function applyDocumentDirection() {
     html.lang.startsWith("ar-") ||
     html.classList.contains("translated-rtl");
 
-  html.dir = isRtl ? "rtl" : "ltr";
-  html.classList.toggle("rtl", isRtl);
+  const nextDir = isRtl ? "rtl" : "ltr";
+  if (html.getAttribute("dir") !== nextDir) {
+    html.setAttribute("dir", nextDir);
+  }
+
+  const hasRtlClass = html.classList.contains("rtl");
+  if (isRtl && !hasRtlClass) html.classList.add("rtl");
+  if (!isRtl && hasRtlClass) html.classList.remove("rtl");
 }
 
 export function RtlProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     applyDocumentDirection();
 
-    const observer = new MutationObserver(applyDocumentDirection);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["lang", "class", "dir"],
+    let frame = 0;
+    const observer = new MutationObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(applyDocumentDirection);
     });
 
-    return () => observer.disconnect();
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["lang", "class"],
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, []);
 
   return children;

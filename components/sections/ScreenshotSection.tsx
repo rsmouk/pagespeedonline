@@ -22,10 +22,19 @@ export function ScreenshotSection({ lighthouse }: ScreenshotSectionProps) {
 
   const screenshot = fps.screenshot;
   const nodes = fps.nodes ?? {};
+  const imageStripped =
+    typeof screenshot?.data === "string" &&
+    screenshot.data.startsWith("[image data stripped");
 
   return (
     <div className="space-y-4">
-      {screenshot?.data && (
+      {imageStripped && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Full-page screenshot omitted in the browser to prevent crashes. Metadata
+          is still available below.
+        </p>
+      )}
+      {screenshot?.data && !imageStripped && (
         <div>
           <button
             type="button"

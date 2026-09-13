@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Download, Loader2, ArrowLeft } from "lucide-react";
@@ -10,101 +10,97 @@ import { ScanProgress } from "@/components/ScanProgress";
 import { AlignedCompareResults } from "@/components/compare/AlignedCompareResults";
 import { GoogleAttribution } from "@/components/GoogleAttribution";
 import { fetchPageSpeed } from "@/lib/pagespeed-client";
-import { exportReportToPdf } from "@/lib/export-pdf";
 import { normalizeUrl } from "@/lib/formatters";
+import { sanitizePageSpeedResult } from "@/lib/sanitize-pagespeed";
+import {
+  createLoadingScan,
+  getScanState,
+  needsScan,
+  upsertScan,
+} from "@/lib/scan-store";
 import type { ScanState, Strategy } from "@/lib/types";
 import { scanKey } from "@/lib/types";
-
-function buildScans(urlA: string, urlB: string): ScanState[] {
-  const strategies: Strategy[] = ["mobile", "desktop"];
-  const scans: ScanState[] = [];
-
-  for (const strategy of strategies) {
-    scans.push({
-      key: scanKey(urlA, strategy),
-      url: urlA,
-      strategy,
-      label: `Site A · ${strategy}`,
-      status: "idle",
-    });
-    scans.push({
-      key: scanKey(urlB, strategy),
-      url: urlB,
-      strategy,
-      label: `Site B · ${strategy}`,
-      status: "idle",
-    });
-  }
-
-  return scans;
-}
 
 export function CompareReportPage() {
   const searchParams = useSearchParams();
   const [urlA, setUrlA] = useState("");
   const [urlB, setUrlB] = useState("");
   const [scans, setScans] = useState<ScanState[]>([]);
+  const [strategy, setStrategy] = useState<Strategy>("mobile");
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [started, setStarted] = useState(false);
+  const inFlight = useRef(new Set<string>());
 
-  const runCompare = useCallback(async (a: string, b: string) => {
-    setLoading(true);
-    setExportError(null);
-
-    const initialScans = buildScans(a, b).map((s) => ({
-      ...s,
-      status: "loading" as const,
-    }));
-    setScans(initialScans);
-
-    await Promise.all(
-      initialScans.map(async (scan) => {
-        try {
-          const data = await fetchPageSpeed(scan.url, scan.strategy);
-          setScans((prev) =>
-            prev.map((s) =>
-              s.key === scan.key
-                ? { ...s, status: "done" as const, data, error: undefined }
-                : s
-            )
-          );
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Unknown error";
-          setScans((prev) =>
-            prev.map((s) =>
-              s.key === scan.key
-                ? { ...s, status: "error" as const, error: message }
-                : s
-            )
-          );
-        }
-      })
-    );
-
-    setLoading(false);
+  const patchScan = useCallback((scan: ScanState) => {
+    setScans((prev) => upsertScan(prev, scan));
   }, []);
+
+  const runScan = useCallback(
+    async (url: string, scanStrategy: Strategy, label: string) => {
+      const key = scanKey(url, scanStrategy);
+      if (inFlight.current.has(key)) return;
+
+      inFlight.current.add(key);
+      setLoading(true);
+
+      const loading = createLoadingScan(url, scanStrategy, label);
+      patchScan(loading);
+
+      try {
+        const raw = await fetchPageSpeed(url, scanStrategy);
+        const data = sanitizePageSpeedResult(raw);
+        patchScan({
+          ...loading,
+          status: "done",
+          data,
+          error: undefined,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        patchScan({
+          ...loading,
+          status: "error",
+          error: message,
+        });
+      } finally {
+        inFlight.current.delete(key);
+        if (inFlight.current.size === 0) setLoading(false);
+      }
+    },
+    [patchScan]
+  );
 
   useEffect(() => {
     const paramA = searchParams.get("a") ?? "";
     const paramB = searchParams.get("b") ?? "";
     const a = normalizeUrl(paramA);
     const b = normalizeUrl(paramB);
+    if (a) setUrlA(a);
+    if (b) setUrlB(b);
+  }, [searchParams]);
 
-    if (a && b && !started) {
-      setUrlA(a);
-      setUrlB(b);
-      setStarted(true);
-      runCompare(a, b);
+  useEffect(() => {
+    if (!urlA || !urlB) return;
+
+    if (needsScan(scans, urlA, strategy)) {
+      runScan(urlA, strategy, `Site A · ${strategy}`);
     }
-  }, [searchParams, started, runCompare]);
+    if (needsScan(scans, urlB, strategy)) {
+      runScan(urlB, strategy, `Site B · ${strategy}`);
+    }
+  }, [urlA, urlB, strategy, scans, runScan]);
+
+  const handleStrategyChange = useCallback((next: Strategy) => {
+    setStrategy(next);
+  }, []);
 
   const handleExportPdf = async () => {
     setExporting(true);
     setExportError(null);
     try {
+      const { exportReportToPdf } = await import("@/lib/export-pdf");
       await exportReportToPdf("report-container");
     } catch (error) {
       setExportError(
@@ -115,15 +111,26 @@ export function CompareReportPage() {
     }
   };
 
-  const hasResults = scans.some((s) => s.status === "done");
+  const scanA = getScanState(scans, urlA, strategy);
+  const scanB = getScanState(scans, urlB, strategy);
+  const canShowReport =
+    scanA?.status === "done" &&
+    scanB?.status === "done" &&
+    scanA.data &&
+    scanB.data;
   const missingUrls = !urlA || !urlB;
+  const visibleScans = scans.filter(
+    (s) =>
+      (s.url === urlA || s.url === urlB) &&
+      (s.strategy === strategy || s.status === "loading")
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <Header
         actions={
           <>
-            {hasResults && (
+            {canShowReport && (
               <button
                 type="button"
                 onClick={handleExportPdf}
@@ -191,7 +198,7 @@ export function CompareReportPage() {
           </div>
         )}
 
-        {loading && <ScanProgress scans={scans} />}
+        {loading && <ScanProgress scans={visibleScans} />}
 
         {exportError && (
           <p className="text-sm text-rose-600 dark:text-rose-400">
@@ -199,9 +206,28 @@ export function CompareReportPage() {
           </p>
         )}
 
-        {hasResults && urlA && urlB && (
-          <div id="report-container">
-            <AlignedCompareResults scans={scans} urlA={urlA} urlB={urlB} />
+        {!missingUrls &&
+          (canShowReport ||
+            scanA?.status === "loading" ||
+            scanB?.status === "loading") && (
+            <div id="report-container">
+              <AlignedCompareResults
+                scans={scans}
+                urlA={urlA}
+                urlB={urlB}
+                strategy={strategy}
+                onStrategyChange={handleStrategyChange}
+              />
+            </div>
+          )}
+
+        {!loading && !canShowReport && !missingUrls && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+            {scanA?.status === "error" && <p>Site A: {scanA.error}</p>}
+            {scanB?.status === "error" && <p>Site B: {scanB.error}</p>}
+            {!scanA?.error && !scanB?.error && (
+              <p>Unable to load comparison results. Please try again.</p>
+            )}
           </div>
         )}
       </main>
