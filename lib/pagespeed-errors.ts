@@ -9,7 +9,10 @@ export class PageSpeedFetchError extends Error {
     super(raw);
     this.name = "PageSpeedFetchError";
     this.kind = kind;
-    this.retryable = kind === "timeout" || kind === "network";
+    // Lighthouse / PageSpeed often fails transiently on the same URL
+    // (e.g. After right after Before) — retry unknown errors too.
+    this.retryable =
+      kind === "timeout" || kind === "network" || kind === "unknown";
     this.userMessage = userMessage;
   }
 }

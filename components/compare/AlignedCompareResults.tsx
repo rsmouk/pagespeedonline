@@ -37,6 +37,8 @@ interface AlignedCompareResultsProps {
   displayUrlB?: string;
   strategy: Strategy;
   onStrategyChange: (strategy: Strategy) => void;
+  onRetryA?: () => void;
+  onRetryB?: () => void;
 }
 
 function getScan(
@@ -57,6 +59,8 @@ export function AlignedCompareResults({
   displayUrlB,
   strategy,
   onStrategyChange,
+  onRetryA,
+  onRetryB,
 }: AlignedCompareResultsProps) {
   const showUrlA = displayUrlA ?? urlA;
   const showUrlB = displayUrlB ?? urlB;
@@ -113,7 +117,9 @@ export function AlignedCompareResults({
   const renderSitePanel = (
     scan: ScanState | undefined,
     siteLabel: string,
-    siteUrl: string
+    siteUrl: string,
+    peerScan: ScanState | undefined,
+    onRetry?: () => void
   ) => {
     if (scan?.status === "loading") {
       return (
@@ -131,14 +137,40 @@ export function AlignedCompareResults({
           url={siteUrl}
           message={scan.error}
           errorKind={scan.errorKind}
+          onRetry={onRetry}
         />
       );
     }
 
+    if (scan?.status === "done" && scan.data) {
+      const peerStillPending =
+        !peerScan ||
+        peerScan.status === "loading" ||
+        peerScan.status === "idle" ||
+        peerScan.status === "error";
+
+      if (peerStillPending) {
+        return (
+          <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 py-12 dark:border-emerald-900 dark:bg-emerald-950/20">
+            <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+            <p className="mt-3 text-sm font-medium text-emerald-800 dark:text-emerald-200">
+              {siteLabel} ready
+            </p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Waiting for the other scan to finish…
+            </p>
+          </div>
+        );
+      }
+    }
+
     return (
-      <p className="py-8 text-center text-sm text-slate-400">
-        Expand a section above to view {siteLabel} data
-      </p>
+      <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 py-12 dark:border-slate-700">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <p className="mt-3 text-sm text-slate-500">
+          Waiting for the other scan to finish…
+        </p>
+      </div>
     );
   };
 
@@ -284,8 +316,8 @@ export function AlignedCompareResults({
       {/* Loading / error states when not both ready */}
       {!bothReady && (
         <div className="grid gap-4 lg:grid-cols-2">
-          {renderSitePanel(scanA, labelA, showUrlA)}
-          {renderSitePanel(scanB, labelB, showUrlB)}
+          {renderSitePanel(scanA, labelA, showUrlA, scanB, onRetryA)}
+          {renderSitePanel(scanB, labelB, showUrlB, scanA, onRetryB)}
         </div>
       )}
     </div>

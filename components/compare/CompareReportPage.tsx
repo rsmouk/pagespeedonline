@@ -9,7 +9,6 @@ import { Footer } from "@/components/Footer";
 import { ScanProgress } from "@/components/ScanProgress";
 import { AlignedCompareResults } from "@/components/compare/AlignedCompareResults";
 import { SingleSiteResults } from "@/components/compare/SingleSiteResults";
-import { ScanErrorPanel } from "@/components/compare/ScanErrorPanel";
 import { ServiceOfferBanner } from "@/components/compare/ServiceOfferBanner";
 import { CopyUrlButton } from "@/components/ui/CopyUrlButton";
 import { NavIconLink } from "@/components/ui/NavIconButton";
@@ -97,7 +96,7 @@ export function CompareReportPage() {
           try {
             if (attempt > 1) {
               patchScan({ ...loading, status: "loading" });
-              await sleep(2000 * attempt);
+              await sleep(2500 * attempt);
             }
 
             const raw = await fetchPageSpeed(displayUrl, scanStrategy);
@@ -445,19 +444,54 @@ export function CompareReportPage() {
       Boolean(scanA.data) &&
       Boolean(scanB.data);
   const missingData = isSingleSite ? !urlA : !urlA || !urlB;
-  const visibleScans = scans.filter((s) => {
+  const progressScans: ScanState[] = (() => {
     if (isSingleSite) {
-      return (
-        s.url === urlA &&
-        (s.strategy === strategy || s.status === "loading")
+      return scans.filter(
+        (s) =>
+          s.url === urlA &&
+          (s.strategy === strategy || s.status === "loading")
       );
     }
-    return (
-      (s.url === urlA || s.url === urlB) &&
-      (s.strategy === strategy || s.status === "loading")
-    );
-  });
 
+    const sides: { url: string; label: string }[] = [
+      { url: urlA, label: labelA },
+      { url: urlB, label: labelB },
+    ].filter((s) => s.url);
+
+    const list: ScanState[] = [];
+    for (const side of sides) {
+      const existing = getScanState(scans, side.url, strategy);
+      if (existing) {
+        list.push(existing);
+      } else {
+        list.push({
+          key: scanKey(side.url, strategy),
+          url: side.url,
+          strategy,
+          label: `${side.label} · ${strategy}`,
+          status: "idle",
+        });
+      }
+    }
+
+    // Also surface any other strategies still loading (e.g. capture both).
+    for (const s of scans) {
+      if (
+        s.status === "loading" &&
+        (s.url === urlA || s.url === urlB) &&
+        !list.some((x) => x.key === s.key)
+      ) {
+        list.push(s);
+      }
+    }
+
+    return list;
+  })();
+
+  const showProgress =
+    progressScans.some(
+      (s) => s.status === "loading" || s.status === "idle"
+    ) && !canShowReport;
   const displayUrlA =
     compareMode === "before-after" ? baseUrl || urlA.split("#")[0] : urlA;
   const displayUrlB =
@@ -620,7 +654,7 @@ export function CompareReportPage() {
           </div>
         )}
 
-        {loading && <ScanProgress scans={visibleScans} />}
+        {showProgress && <ScanProgress scans={progressScans} />}
 
         {exportError && (
           <p className="text-sm text-rose-600 dark:text-rose-400">
@@ -645,7 +679,11 @@ export function CompareReportPage() {
           !isSingleSite &&
           (canShowReport ||
             scanA?.status === "loading" ||
-            scanB?.status === "loading") && (
+            scanB?.status === "loading" ||
+            scanA?.status === "error" ||
+            scanB?.status === "error" ||
+            scanA?.status === "done" ||
+            scanB?.status === "done") && (
             <div id="report-container">
               <AlignedCompareResults
                 scans={scans}
@@ -657,37 +695,27 @@ export function CompareReportPage() {
                 displayUrlB={displayUrlB}
                 strategy={strategy}
                 onStrategyChange={handleStrategyChange}
+                onRetryA={() => retryScan("a")}
+                onRetryB={() => retryScan("b")}
               />
             </div>
           )}
 
-        {!loading && !canShowReport && !missingData && !captureDone && !isSingleSite && (
-          <div className="space-y-3">
-            {scanA?.status === "error" && (
-              <ScanErrorPanel
-                label={labelA}
-                url={displayUrlA}
-                message={scanA.error}
-                errorKind={scanA.errorKind}
-                onRetry={() => retryScan("a")}
-              />
-            )}
-            {scanB?.status === "error" && (
-              <ScanErrorPanel
-                label={labelB}
-                url={displayUrlB}
-                message={scanB.error}
-                errorKind={scanB.errorKind}
-                onRetry={() => retryScan("b")}
-              />
-            )}
-            {!scanA?.error && !scanB?.error && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
-                Unable to load comparison results. Please try again.
-              </div>
-            )}
-          </div>
-        )}
+        {!loading &&
+          !canShowReport &&
+          !missingData &&
+          !captureDone &&
+          !isSingleSite &&
+          scanA?.status !== "error" &&
+          scanB?.status !== "error" &&
+          scanA?.status !== "loading" &&
+          scanB?.status !== "loading" &&
+          scanA?.status !== "done" &&
+          scanB?.status !== "done" && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+              Unable to load comparison results. Please try again.
+            </div>
+          )}
       </main>
 
       <Footer />
