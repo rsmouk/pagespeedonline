@@ -48,8 +48,10 @@ export function LighthouseCompareForm() {
   useEffect(() => {
     const snap = getBeforeSnapshot();
     setBeforeSavedAt(snap?.savedAt ?? null);
-    if (snap?.url && !singleUrl) setSingleUrl(snap.url);
-  }, [singleUrl]);
+    if (snap?.url) setSingleUrl(snap.url);
+    // Prefill once from saved Before snapshot; do not re-apply after the user clears the field.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleInputMode = () => {
     setInputMode((m) => (m === "url" ? "json" : "url"));

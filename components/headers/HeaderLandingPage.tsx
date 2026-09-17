@@ -60,8 +60,10 @@ export function HeaderLandingPage() {
   useEffect(() => {
     const snap = getHeaderBeforeSnapshot();
     setBeforeSavedAt(snap?.savedAt ?? null);
-    if (snap?.url && !singleUrl) setSingleUrl(snap.url);
-  }, [singleUrl]);
+    if (snap?.url) setSingleUrl(snap.url);
+    // Prefill once from saved Before snapshot; do not re-apply after the user clears the field.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleTwoSitesSubmit = (e: FormEvent) => {
     e.preventDefault();
