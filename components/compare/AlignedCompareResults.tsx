@@ -5,6 +5,7 @@ import { Accordion } from "@/components/ui/Accordion";
 import { CompareScreenshotsSection } from "@/components/compare/CompareScreenshotsSection";
 import { CompareSummaryCard } from "@/components/compare/CompareSummaryCard";
 import { ScanErrorPanel } from "@/components/compare/ScanErrorPanel";
+import { SimpleReportHighlights } from "@/components/report/SimpleReportHighlights";
 import { SiteSectionPanel } from "@/components/report/SiteSectionPanel";
 import { StrategyTabs } from "@/components/StrategyTabs";
 import { Badge } from "@/components/ui/Badge";
@@ -12,6 +13,7 @@ import {
   displayHost,
   extractCompareSummary,
 } from "@/lib/extract-compare-summary";
+import { extractSimpleReport } from "@/lib/extract-simple-report";
 import { formatDate } from "@/lib/formatters";
 import { extractScreenshot } from "@/lib/extract-screenshot";
 import { REPORT_SECTIONS } from "@/lib/report-sections";
@@ -187,6 +189,15 @@ export function AlignedCompareResults({
     return extractCompareSummary(dataA, dataB);
   }, [bothReady, scanA?.data, scanB?.data]);
 
+  const simpleA = useMemo(
+    () => (bothReady && scanA?.data ? extractSimpleReport(scanA.data) : null),
+    [bothReady, scanA?.data]
+  );
+  const simpleB = useMemo(
+    () => (bothReady && scanB?.data ? extractSimpleReport(scanB.data) : null),
+    [bothReady, scanB?.data]
+  );
+
   const screenshots = useMemo(() => {
     const dataA = scanA?.data;
     const dataB = scanB?.data;
@@ -208,19 +219,51 @@ export function AlignedCompareResults({
 
       {bothReady && summary && (
         <div className="mb-6 space-y-6">
-          <CompareSummaryCard
-            siteLabelA={displayHost(showUrlA)}
-            siteLabelB={displayHost(showUrlB)}
-            subtitleA={`${strategyLabel} · ${labelA}`}
-            subtitleB={`${strategyLabel} · ${labelB}`}
-            analysisDate={formatDate(scanA.data!.analysisUTCTimestamp)}
-            winnerLabelA={labelA}
-            winnerLabelB={labelB}
-            perfScoreA={summary.perfScoreA}
-            perfScoreB={summary.perfScoreB}
-            categories={summary.categories}
-            cwv={summary.cwv}
-          />
+          <div>
+            <p className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Summary
+            </p>
+            <CompareSummaryCard
+              siteLabelA={displayHost(showUrlA)}
+              siteLabelB={displayHost(showUrlB)}
+              subtitleA={`${strategyLabel} · ${labelA}`}
+              subtitleB={`${strategyLabel} · ${labelB}`}
+              analysisDate={formatDate(scanA.data!.analysisUTCTimestamp)}
+              winnerLabelA={labelA}
+              winnerLabelB={labelB}
+              perfScoreA={summary.perfScoreA}
+              perfScoreB={summary.perfScoreB}
+              categories={summary.categories}
+              cwv={summary.cwv}
+            />
+          </div>
+
+          {simpleA && simpleB && (
+            <div className="space-y-3">
+              <div className="px-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Top opportunities & recommendations
+                </p>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  Side-by-side beginner-friendly fixes, targets, and passed checks.
+                </p>
+              </div>
+              <div className="grid items-start gap-4 lg:grid-cols-2">
+                <div className="min-w-0 rounded-xl border border-teal-100/80 bg-teal-50/20 p-3 dark:border-teal-900/40 dark:bg-teal-950/10 sm:p-4">
+                  <p className="mb-3 truncate text-xs font-semibold text-teal-700 dark:text-teal-300">
+                    {labelA} · {displayHost(showUrlA)}
+                  </p>
+                  <SimpleReportHighlights report={simpleA} />
+                </div>
+                <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/40 p-3 dark:border-slate-800 dark:bg-slate-900/40 sm:p-4">
+                  <p className="mb-3 truncate text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    {labelB} · {displayHost(showUrlB)}
+                  </p>
+                  <SimpleReportHighlights report={simpleB} />
+                </div>
+              </div>
+            </div>
+          )}
 
           {screenshots && (
             <CompareScreenshotsSection
@@ -265,7 +308,15 @@ export function AlignedCompareResults({
       {/* Shared accordion rows — one section, two columns side by side */}
       {bothReady && (
         <div className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="px-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Advanced
+              </p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Full Lighthouse audits, raw metrics, and JSON for deeper analysis.
+              </p>
+            </div>
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-teal-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-teal-700">
               <input
                 type="checkbox"

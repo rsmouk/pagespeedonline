@@ -1,14 +1,32 @@
 "use client";
 
+import { useState } from "react";
 import { ScoreRing } from "@/components/ui/ScoreRing";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/formatters";
-import type { SimpleReportData, MetricStatus } from "@/lib/extract-simple-report";
-import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, Smartphone, Monitor } from "lucide-react";
+import type {
+  SimpleReportData,
+  MetricStatus,
+  SimpleReportRecommendation,
+} from "@/lib/extract-simple-report";
+import {
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  HelpCircle,
+  Smartphone,
+  Monitor,
+  ChevronDown,
+  Lightbulb,
+  Target,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
 
 interface SimpleReportProps {
   report: SimpleReportData;
+  /** Hide the outer “Summary” heading (useful when parent already labels it). */
+  hideSectionLabel?: boolean;
+  compact?: boolean;
 }
 
 function statusLabel(status: MetricStatus): string {
@@ -55,11 +73,13 @@ function MetricCard({
   description,
   value,
   status,
+  recommendedValue,
 }: {
   label: string;
   description: string;
   value: string;
   status: MetricStatus;
+  recommendedValue?: string;
 }) {
   return (
     <div
@@ -80,6 +100,12 @@ function MetricCard({
       </div>
       <p className="text-2xl font-bold tabular-nums text-slate-900 dark:text-white">{value}</p>
       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{description}</p>
+      {recommendedValue && status !== "good" && (
+        <p className="mt-2 flex items-center gap-1 text-xs font-medium text-teal-700 dark:text-teal-300">
+          <Target className="h-3 w-3 shrink-0" />
+          Aim for {recommendedValue}
+        </p>
+      )}
     </div>
   );
 }
@@ -132,13 +158,89 @@ function CoreWebVitalsBanner({ passed }: { passed: boolean | null }) {
   );
 }
 
-export function SimpleReport({ report }: SimpleReportProps) {
+function priorityBadge(priority: SimpleReportRecommendation["priority"]) {
+  switch (priority) {
+    case "high":
+      return (
+        <Badge variant="danger" className="shrink-0">
+          High
+        </Badge>
+      );
+    case "medium":
+      return (
+        <Badge variant="warning" className="shrink-0">
+          Medium
+        </Badge>
+      );
+    default:
+      return (
+        <Badge variant="default" className="shrink-0">
+          Low
+        </Badge>
+      );
+  }
+}
+
+function CollapsibleSection({
+  title,
+  subtitle,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-start transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+      >
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">{title}</h2>
+          {subtitle && (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
+          )}
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-slate-400 transition-transform",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+      {open && (
+        <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
+          {children}
+        </div>
+      )}
+    </section>
+  );
+}
+
+export function SimpleReport({
+  report,
+  hideSectionLabel = false,
+  compact = false,
+}: SimpleReportProps) {
   const StrategyIcon = report.strategy === "mobile" ? Smartphone : Monitor;
   const strategyLabel = report.strategy === "mobile" ? "Mobile" : "Desktop";
   const scannedCategoryCount = report.categories.length;
+  const [showPassed, setShowPassed] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", compact && "space-y-4")}>
+      {!hideSectionLabel && (
+        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Summary
+        </p>
+      )}
+
       {/* Header */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -231,6 +333,7 @@ export function SimpleReport({ report }: SimpleReportProps) {
                 description={metric.description}
                 value={metric.value}
                 status={metric.status}
+                recommendedValue={metric.recommendedValue}
               />
             ))}
           </div>
@@ -241,31 +344,64 @@ export function SimpleReport({ report }: SimpleReportProps) {
         )}
       </section>
 
-      {/* Lab data */}
+      {/* Recommendations — beginner friendly */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-4">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-            Lab data — simulated page load
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Single test from Lighthouse on {strategyLabel.toLowerCase()}. Useful for debugging, but may differ from real users.
-          </p>
+        <div className="mb-4 flex items-start gap-2">
+          <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              Recommendations
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Plain-language fixes with the target value that counts as “good”.
+            </p>
+          </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {report.labMetrics.map((metric) => (
-            <MetricCard
-              key={metric.id}
-              label={metric.label}
-              description={metric.description}
-              value={metric.value}
-              status={metric.status}
-            />
-          ))}
-        </div>
+        {report.recommendations.length > 0 ? (
+          <ul className="space-y-3">
+            {report.recommendations.map((item) => (
+              <li
+                key={item.id}
+                className="rounded-lg border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                    {item.title}
+                  </p>
+                  {priorityBadge(item.priority)}
+                </div>
+                <div className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
+                  <p className="text-slate-500">
+                    Now:{" "}
+                    <span className="font-semibold text-amber-700 dark:text-amber-300">
+                      {item.currentValue}
+                    </span>
+                  </p>
+                  <p className="text-slate-500">
+                    Aim for:{" "}
+                    <span className="font-semibold text-teal-700 dark:text-teal-300">
+                      {item.recommendedValue}
+                    </span>
+                  </p>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                  {item.tip}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-3 dark:bg-emerald-950/30">
+            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <p className="text-sm text-emerald-800 dark:text-emerald-200">
+              No urgent recommendations — this test looks healthy.
+            </p>
+          </div>
+        )}
       </section>
 
-      {/* Opportunities */}
+      {/* Top opportunities */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -301,7 +437,17 @@ export function SimpleReport({ report }: SimpleReportProps) {
                   </p>
                   {item.displayValue && (
                     <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
-                      {item.displayValue}
+                      Now: {item.displayValue}
+                    </p>
+                  )}
+                  {item.recommendedValue && (
+                    <p className="mt-0.5 text-xs text-teal-700 dark:text-teal-300">
+                      Aim for: {item.recommendedValue}
+                    </p>
+                  )}
+                  {item.tip && (
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      {item.tip}
                     </p>
                   )}
                 </div>
@@ -321,7 +467,68 @@ export function SimpleReport({ report }: SimpleReportProps) {
             </p>
           </div>
         )}
+
+        {/* Passed audits list */}
+        {report.passedItems.length > 0 && (
+          <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setShowPassed((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 text-start"
+            >
+              <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                Passed checks ({report.passedItems.length})
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-slate-400 transition-transform",
+                  showPassed && "rotate-180"
+                )}
+              />
+            </button>
+            {showPassed && (
+              <ul className="mt-3 space-y-2">
+                {report.passedItems.map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200"
+                  >
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                    <span className="min-w-0">
+                      <span className="font-medium">{item.title}</span>
+                      {item.displayValue && (
+                        <span className="mt-0.5 block text-xs text-slate-500">
+                          {item.displayValue}
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </section>
+
+      {/* Lab data — collapsed by default */}
+      <CollapsibleSection
+        title="Lab data — simulated page load"
+        subtitle={`Single test from Lighthouse on ${strategyLabel.toLowerCase()}. Useful for debugging, but may differ from real users.`}
+        defaultOpen={false}
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {report.labMetrics.map((metric) => (
+            <MetricCard
+              key={metric.id}
+              label={metric.label}
+              description={metric.description}
+              value={metric.value}
+              status={metric.status}
+              recommendedValue={metric.recommendedValue}
+            />
+          ))}
+        </div>
+      </CollapsibleSection>
     </div>
   );
 }

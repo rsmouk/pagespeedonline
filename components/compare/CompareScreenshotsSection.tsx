@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { ChevronDown, Maximize2, Minimize2 } from "lucide-react";
+import { cn } from "@/lib/cn";
 import type { ExtractedScreenshot } from "@/lib/extract-screenshot";
 
 interface ScreenshotColumnProps {
@@ -131,6 +132,7 @@ export function CompareScreenshotsSection({
   screenshotA,
   screenshotB,
 }: CompareScreenshotsSectionProps) {
+  const [sectionOpen, setSectionOpen] = useState(false);
   const [expandedA, setExpandedA] = useState(false);
   const [expandedB, setExpandedB] = useState(false);
 
@@ -144,34 +146,51 @@ export function CompareScreenshotsSection({
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-      <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Page Screenshots — Side by Side
-        </p>
-      </div>
+      <button
+        type="button"
+        onClick={() => setSectionOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-start transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
+      >
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Page Screenshots — Side by Side
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            Visual capture of both pages from this Lighthouse run.
+          </p>
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-slate-400 transition-transform",
+            sectionOpen && "rotate-180"
+          )}
+        />
+      </button>
 
-      <div className="grid lg:grid-cols-2">
-        <div className="border-b border-slate-100 lg:border-b-0 lg:border-e dark:border-slate-800">
+      {sectionOpen && (
+        <div className="grid border-t border-slate-200 lg:grid-cols-2 dark:border-slate-800">
+          <div className="border-b border-slate-100 lg:border-b-0 lg:border-e dark:border-slate-800">
+            <ScreenshotColumn
+              badge="A"
+              siteLabel={siteLabelA}
+              subtitle={subtitleA}
+              screenshot={screenshotA}
+              expanded={expandedA}
+              onToggleExpand={() => setExpandedA((v) => !v)}
+              variant="teal"
+            />
+          </div>
           <ScreenshotColumn
-            badge="A"
-            siteLabel={siteLabelA}
-            subtitle={subtitleA}
-            screenshot={screenshotA}
-            expanded={expandedA}
-            onToggleExpand={() => setExpandedA((v) => !v)}
-            variant="teal"
+            badge="B"
+            siteLabel={siteLabelB}
+            subtitle={subtitleB}
+            screenshot={screenshotB}
+            expanded={expandedB}
+            onToggleExpand={() => setExpandedB((v) => !v)}
+            variant="slate"
           />
         </div>
-        <ScreenshotColumn
-          badge="B"
-          siteLabel={siteLabelB}
-          subtitle={subtitleB}
-          screenshot={screenshotB}
-          expanded={expandedB}
-          onToggleExpand={() => setExpandedB((v) => !v)}
-          variant="slate"
-        />
-      </div>
+      )}
     </div>
   );
 }

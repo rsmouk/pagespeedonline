@@ -89,9 +89,14 @@ export function SingleSiteResults({
       <SimpleReport report={simpleReport} />
 
       <div className="space-y-3">
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Technical details
-        </p>
+        <div className="px-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Advanced
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            Full Lighthouse audits, raw metrics, and JSON for deeper analysis.
+          </p>
+        </div>
         {REPORT_SECTIONS.map((section, index) => (
           <Accordion
             key={section.id}
