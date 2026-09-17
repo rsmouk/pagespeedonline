@@ -181,47 +181,7 @@ function priorityBadge(priority: SimpleReportRecommendation["priority"]) {
   }
 }
 
-function CollapsibleSection({
-  title,
-  subtitle,
-  defaultOpen = false,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-start transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
-      >
-        <div>
-          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">{title}</h2>
-          {subtitle && (
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
-          )}
-        </div>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 shrink-0 text-slate-400 transition-transform",
-            open && "rotate-180"
-          )}
-        />
-      </button>
-      {open && (
-        <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
-          {children}
-        </div>
-      )}
-    </section>
-  );
-}
+type MetricsTab = "lab" | "field";
 
 export function SimpleReport({
   report,
@@ -232,6 +192,7 @@ export function SimpleReport({
   const strategyLabel = report.strategy === "mobile" ? "Mobile" : "Desktop";
   const scannedCategoryCount = report.categories.length;
   const [showPassed, setShowPassed] = useState(false);
+  const [metricsTab, setMetricsTab] = useState<MetricsTab>("lab");
 
   return (
     <div className={cn("space-y-6", compact && "space-y-4")}>
@@ -297,50 +258,103 @@ export function SimpleReport({
         )}
       </div>
 
-      {/* Field data — Core Web Vitals */}
+      {/* Lab + Field metrics — tabbed */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-4">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-            Discover what your real users experience
-          </h2>
-          {report.fieldDataNote && (
-            <p
-              className="mt-1 text-xs text-slate-500 dark:text-slate-400"
-              spellCheck={false}
-            >
-              {report.fieldDataNote}
-              {report.fieldDataSource && (
-                <>
-                  {" "}
-                  <span className="text-slate-500 dark:text-slate-400">
-                    ({report.fieldDataSource})
-                  </span>
-                  .
-                </>
-              )}
-            </p>
-          )}
+        <div className="mb-4 flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+          <button
+            type="button"
+            onClick={() => setMetricsTab("lab")}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-medium transition sm:text-sm",
+              metricsTab === "lab"
+                ? "bg-white text-teal-700 shadow-sm dark:bg-slate-900 dark:text-teal-300"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
+            )}
+          >
+            <span className="text-center">Lab data — simulated page load</span>
+            <span className="shrink-0 rounded-md bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+              Live
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMetricsTab("field")}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-medium transition sm:text-sm",
+              metricsTab === "field"
+                ? "bg-white text-teal-700 shadow-sm dark:bg-slate-900 dark:text-teal-300"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
+            )}
+          >
+            <span className="text-center">
+              Discover what your real users experience
+            </span>
+          </button>
         </div>
 
-        <CoreWebVitalsBanner passed={report.coreWebVitalsPassed} />
-
-        {report.fieldMetrics.length > 0 ? (
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {report.fieldMetrics.map((metric) => (
-              <MetricCard
-                key={metric.id}
-                label={metric.label}
-                description={metric.description}
-                value={metric.value}
-                status={metric.status}
-                recommendedValue={metric.recommendedValue}
-              />
-            ))}
+        {metricsTab === "lab" && (
+          <div>
+            <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
+              Single test from Lighthouse on {strategyLabel.toLowerCase()}. Useful
+              for debugging, but may differ from real users.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {report.labMetrics.map((metric) => (
+                <MetricCard
+                  key={metric.id}
+                  label={metric.label}
+                  description={metric.description}
+                  value={metric.value}
+                  status={metric.status}
+                  recommendedValue={metric.recommendedValue}
+                />
+              ))}
+            </div>
           </div>
-        ) : (
-          <p className="mt-4 text-sm text-slate-500">
-            No field data available. Lab results below show a simulated test only.
-          </p>
+        )}
+
+        {metricsTab === "field" && (
+          <div>
+            {report.fieldDataNote && (
+              <p
+                className="mb-4 text-xs text-slate-500 dark:text-slate-400"
+                spellCheck={false}
+              >
+                {report.fieldDataNote}
+                {report.fieldDataSource && (
+                  <>
+                    {" "}
+                    <span className="text-slate-500 dark:text-slate-400">
+                      ({report.fieldDataSource})
+                    </span>
+                    .
+                  </>
+                )}
+              </p>
+            )}
+
+            <CoreWebVitalsBanner passed={report.coreWebVitalsPassed} />
+
+            {report.fieldMetrics.length > 0 ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {report.fieldMetrics.map((metric) => (
+                  <MetricCard
+                    key={metric.id}
+                    label={metric.label}
+                    description={metric.description}
+                    value={metric.value}
+                    status={metric.status}
+                    recommendedValue={metric.recommendedValue}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">
+                No field data available. Switch to Lab data for the simulated
+                test from this scan.
+              </p>
+            )}
+          </div>
         )}
       </section>
 
@@ -510,25 +524,6 @@ export function SimpleReport({
         )}
       </section>
 
-      {/* Lab data — collapsed by default */}
-      <CollapsibleSection
-        title="Lab data — simulated page load"
-        subtitle={`Single test from Lighthouse on ${strategyLabel.toLowerCase()}. Useful for debugging, but may differ from real users.`}
-        defaultOpen={false}
-      >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {report.labMetrics.map((metric) => (
-            <MetricCard
-              key={metric.id}
-              label={metric.label}
-              description={metric.description}
-              value={metric.value}
-              status={metric.status}
-              recommendedValue={metric.recommendedValue}
-            />
-          ))}
-        </div>
-      </CollapsibleSection>
     </div>
   );
 }
